@@ -1,9 +1,12 @@
 import yaml
 
+
+import data_sampler
 config_path = ".\config.yaml"
 
 with open(config_path) as f:
     config = yaml.load(f, Loader=yaml.loader.SafeLoader)
 
     num_datasets = config.get("num_datasets")
-    print(num_datasets)
+    noise_std = config.get("noise_std")
+    print(data_sampler.sample_params(10))

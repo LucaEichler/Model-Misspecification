@@ -17,6 +17,8 @@ class NonLinear(nn.Module):
         self.linear1 = nn.Linear(dx, dh)
         self.linear2 = nn.Linear(dh, dy)
         self.relu = nn.ReLU()
+
+        # init weights of network layers from standard normal distribution
         self._init_weights()
 
     def _init_weights(self):
@@ -64,7 +66,8 @@ class NonLinearVariational(NonLinear):
         X, Y = batch
 
         prediction = self(X)
-        kl_div = 0.5 * ((self.dx*self.dh+self.dh+self.dh*self.dy+self.dy) * (self.var - torch.log(self.var) - 1) +
+        L = self.dx*self.dh+self.dh+self.dh*self.dy+self.dy
+        kl_div = 0.5 * ((L * (self.var - torch.log(self.var) - 1)) +
                         torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
                         torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
         print("MSE: " + str(loss_fns["MSE"](prediction, Y)))

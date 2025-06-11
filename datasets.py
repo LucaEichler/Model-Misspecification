@@ -44,3 +44,20 @@ class ContextDataset(Dataset):
     Dataset class used to train amortized models, elements of the datasets are again
     whole datasets, i. e. a set of (x,y) pairs
     """
+
+    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.1, **kwargs):
+        self.data = []
+        self.params = []
+
+        # Create 'size' amount of datasets which will make up the big context dataset
+        for i in range(size):
+            # Create new model which will be underlying this dataset
+            model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
+            X, Y = sample_dataset(ds_size, model, noise_std)
+            self.data.append(torch.cat((X, Y), dim=1))
+            self.params.append(model.get_W())
+
+        # Store the actual datasets...
+        self.data = torch.cat(self.data, dim=0)
+        # ...and the parameters that were used to generate them
+        self.params = torch.cat(self.params, dim=0)

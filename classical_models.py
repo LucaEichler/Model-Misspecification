@@ -50,7 +50,6 @@ class NonLinearVariational(NonLinear):
         if kwargs.get('plot', False):
             return super().forward(x)
 
-
         eps1w = torch.randn_like(self.linear1.weight)
         eps1b = torch.randn_like(self.linear1.bias)
 
@@ -61,12 +60,11 @@ class NonLinearVariational(NonLinear):
         layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * self.var).T) + eps2b * self.var
         return layer2out
 
-
     def compute_loss(self, batch, loss_fns):
         X, Y = batch
 
         prediction = self(X)
-        L = self.dx*self.dh+self.dh+self.dh*self.dy+self.dy
+        L = self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
         kl_div = 0.5 * ((L * (self.var - torch.log(self.var) - 1)) +
                         torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
                         torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
@@ -88,13 +86,21 @@ class Linear(nn.Module):
         # initialize parameters according to N(0,I)
         self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
 
-    def forward(self, x):
+    def forward(self, x, W):
         """
 
-        :param x: (batch_size, dx)
+        :param x: (batch_size, dx) or (num_datasets, num_points, dx) if batched
+        :param W: use this if batched multiplication is required
         :return: (batch_size, dy)
         """
+
         batch_size = x.size(0)
+
+        batched = W is not None
+        if batched:
+            batch_size = x.size(0) * x.size(1)
+            prev_size = x.size(1)
+            x = x.view(batch_size, x.size(2))
 
         # bias
         ones = torch.ones((batch_size, 1))  # (batch_size, 1)
@@ -108,6 +114,11 @@ class Linear(nn.Module):
             outer_products = outer_products.view(outer_products.size(0),
                                                  outer_products.size(1) ** 2)  # (batch_size, dx**2)
             phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1+dx+dx**2)
+
+        if batched:
+            phi = phi.view(W.size(0), prev_size, phi.size(1))
+            return torch.bmm(W, phi.transpose(1, 2)).transpose(1, 2)
+
 
         # perform matrix multiplication (multiply the weight matrix W with the
         # basis function vector phi of dimensionality K)

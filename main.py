@@ -20,7 +20,7 @@ with open(config_path) as f:
 def train_in_context_models(dx, dy, dh, dataset_size):
     datasets_linear = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=1)
     datasets_linear_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=1)
-    model_linear = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'Linear', 'backward-kl', order=1)
+    model_linear = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'Linear', 'forward-kl', order=1)
 
     datasets_linear2 = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=2)
     datasets_linear2_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=2)
@@ -53,6 +53,7 @@ def train_classical_models(dx, dy, dh, dataset_size):
 def train(model, dataset, iterations, batch_size, eval_dataset=None):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:
+        eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.00005)
     # weight decay (?)

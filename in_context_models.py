@@ -87,7 +87,7 @@ class InContextModel(nn.Module):
             pred_params = means + torch.randn_like(means) * torch.exp(logvariances)
 
             if self.loss == 'forward-kl':
-                return torch.sum((pred_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
+                return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
 
         model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)
 

@@ -40,10 +40,10 @@ class NonLinear(nn.Module):
             b2_dim = self.dy
 
             # Split
-            w1 = W[:, :w1_dim].view(B, self.dh, self.dx)
-            b1 = W[:, w1_dim:w1_dim + b1_dim].view(B, self.dh)
-            w2 = W[:, w1_dim + b1_dim:w1_dim + b1_dim + w2_dim].view(B, self.dy, self.dh)
-            b2 = W[:, -b2_dim:].view(B, self.dy)
+            w1 = W[:, :, :w1_dim].view(B, self.dh, self.dx)
+            b1 = W[:, :, w1_dim:w1_dim + b1_dim].view(B, self.dh)
+            w2 = W[:, :, w1_dim + b1_dim:w1_dim + b1_dim + w2_dim].view(B, self.dy, self.dh)
+            b2 = W[:, :, -b2_dim:].view(B, self.dy)
 
             x1 = torch.bmm(w1, x.transpose(1, 2)).transpose(1, 2) + b1.unsqueeze(1)
             x1 = torch.relu(x1)

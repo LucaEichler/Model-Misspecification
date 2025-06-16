@@ -1,7 +1,7 @@
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
-from classical_models import Linear
+from classical_models import Linear, NonLinear
 
 
 class Transformer(nn.Module):
@@ -78,17 +78,20 @@ class InContextModel(nn.Module):
 
         if self.loss in ['forward-kl', 'backward-kl']:
             # In this case, the parameters consist of means and variances
-            # We need to sample parameters to compute the loss
             means, logvariances = torch.chunk(pred_params, 2, dim=-1)
 
             # clamp the logvariances to prevent explosion of loss (do we need this?)
             logvariances = torch.clamp(logvariances, min=-10, max=10)
 
-            pred_params = means + torch.randn_like(means) * torch.exp(logvariances)
-
             if self.loss == 'forward-kl':
+                pred_params = means + torch.randn_like(means)  # keep for plotting, but definitely change later
+
                 return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
 
+            # For backward KL, we need to sample parameters using the reparameterization trick to compute the loss
+            pred_params = means + torch.randn_like(means) * torch.exp(logvariances)
+
+        # Compute the model predictions. For the point estimate, pred_
         model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)
 
         mse = torch.mean(torch.sum((datasets_in_Y - model_predictions) ** 2, dim=1), dim=0)

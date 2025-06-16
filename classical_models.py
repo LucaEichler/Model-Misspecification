@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import init
 
-from datasets import sample_dataset
 from sample import sample_normal
 
 
@@ -28,7 +27,28 @@ class NonLinear(nn.Module):
                 if m.bias is not None:
                     init.normal_(m.bias, mean=0.0, std=1.0)
 
-    def forward(self, x):
+    def forward(self, x, W=None):
+        # TODO: Check for correctness
+        batched = W is not None
+        if batched:
+            B = W.size(0)
+
+            # Compute sizes
+            w1_dim = self.dh * self.dx
+            b1_dim = self.dh
+            w2_dim = self.dy * self.dh
+            b2_dim = self.dy
+
+            # Split
+            w1 = W[:, :w1_dim].view(B, self.dh, self.dx)
+            b1 = W[:, w1_dim:w1_dim + b1_dim].view(B, self.dh)
+            w2 = W[:, w1_dim + b1_dim:w1_dim + b1_dim + w2_dim].view(B, self.dy, self.dh)
+            b2 = W[:, -b2_dim:].view(B, self.dy)
+
+            x1 = torch.bmm(w1, x.transpose(1, 2)).transpose(1, 2) + b1.unsqueeze(1)
+            x1 = torch.relu(x1)
+            return torch.bmm(w2, x1.transpose(1, 2)).transpose(1, 2) + b2.unsqueeze(1)
+
         return self.linear2(self.relu(self.linear1(x)))
 
     def compute_loss(self, batch, loss_fns):
@@ -36,6 +56,16 @@ class NonLinear(nn.Module):
         prediction = self(X)
         return loss_fns["MSE"](prediction, Y)
 
+    def count_params(self):
+        return self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
+
+    def get_W(self):
+        return torch.cat([
+            self.linear1.weight.flatten(),
+            self.linear1.bias.flatten(),
+            self.linear2.weight.flatten(),
+            self.linear2.bias.flatten()
+        ])
 
 class NonLinearVariational(NonLinear):
     def __init__(self, dx, dy, dh=100):
@@ -86,7 +116,7 @@ class Linear(nn.Module):
         # initialize parameters according to N(0,I)
         self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
 
-    def forward(self, x, W):
+    def forward(self, x, W=None):
         """
 
         :param x: (batch_size, dx) or (num_datasets, num_points, dx) if batched
@@ -98,6 +128,7 @@ class Linear(nn.Module):
 
         batched = W is not None
         if batched:
+            W = W.view(W.size(0), self.dy, self.K)
             batch_size = x.size(0) * x.size(1)
             prev_size = x.size(1)
             x = x.view(batch_size, x.size(2))
@@ -119,10 +150,15 @@ class Linear(nn.Module):
             phi = phi.view(W.size(0), prev_size, phi.size(1))
             return torch.bmm(W, phi.transpose(1, 2)).transpose(1, 2)
 
-
         # perform matrix multiplication (multiply the weight matrix W with the
         # basis function vector phi of dimensionality K)
         return torch.matmul(self.W, phi.T).T  # (batch_size, dy)
+
+    def count_params(self):
+        return self.W.numel()
+
+    def get_W(self):
+        return self.W.flatten()
 
     def compute_loss(self, batch, loss_fns):
         X, Y = batch
@@ -194,6 +230,8 @@ def test_linear():
 
 
 def test_sample():
+    from datasets import sample_dataset
+
     """
     test the dataset sampling function
     :return:

@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import yaml
 from tqdm import tqdm
 
+import in_context_models
 import plotting
 from classical_models import Linear, LinearVariational, NonLinear, NonLinearVariational
 import datasets
@@ -15,6 +16,17 @@ with open(config_path) as f:
     num_datasets = config.get("num_datasets")
     noise_std = config.get("noise_std")
 
+
+def train_in_context_models(dx, dy, dh, dataset_size):
+    datasets_linear = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=1)
+    datasets_linear_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=1)
+    model_linear = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'Linear', 'backward-kl', order=1)
+
+    datasets_linear2 = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=2)
+    datasets_linear2_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=2)
+    model_linear2 = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'Linear', 'mle-params', order=2)
+
+    train(model_linear, datasets_linear, iterations=10000, batch_size=100, eval_dataset=datasets_linear_test)
 
 def train_classical_models(dx, dy, dh, dataset_size):
     # Create underlying ground truth models and datasets for training classical models
@@ -38,9 +50,11 @@ def train_classical_models(dx, dy, dh, dataset_size):
     return gt_linear, gt_linear_2, gt_nonlinear
 
 
-def train(model, dataset, iterations, batch_size):
+def train(model, dataset, iterations, batch_size, eval_dataset=None):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    if eval_dataset is not None:
+        eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.00005)
     # weight decay (?)
 
     loss_fns = {"MSE": torch.nn.MSELoss()}
@@ -48,6 +62,12 @@ def train(model, dataset, iterations, batch_size):
     for it in tqdm_batch:
         loss = train_step(model, optimizer, loss_fns, dataloader, it)
         tqdm_batch.set_postfix({"loss": loss})
+        if it % 10 and eval_dataset is not None:
+            eval_data_batch = next(iter(eval_dataloader))
+            model.plot_eval(eval_data_batch, loss_fns)
+
+
+
 
 
 def train_step(model, optimizer, loss_fns, dataloader, it):
@@ -55,10 +75,11 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     model.zero_grad()
 
     batch = next(iter(dataloader))
-    loss = model.compute_loss(batch, loss_fns)
+    loss, *_ = model.compute_loss(batch, loss_fns)
     loss.backward()
     optimizer.step()
     return loss
 
 
-train_classical_models(dx=1, dy=1, dh=100, dataset_size=5000)
+# train_classical_models(dx=1, dy=1, dh=100, dataset_size=5000)
+train_in_context_models(dx=1, dy=1, dh=100, dataset_size=50)

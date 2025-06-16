@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from sample import sample_normal
+from classical_models import Linear, NonLinear
 
 
 def sample_dataset(dataset_size, model, noise_std=0.1):
@@ -54,10 +55,16 @@ class ContextDataset(Dataset):
             # Create new model which will be underlying this dataset
             model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
             X, Y = sample_dataset(ds_size, model, noise_std)
-            self.data.append(torch.cat((X, Y), dim=1))
+            self.data.append(torch.cat((torch.from_numpy(X).float(), torch.from_numpy(Y).float()), dim=1))
             self.params.append(model.get_W())
 
         # Store the actual datasets...
-        self.data = torch.cat(self.data, dim=0)
+        self.data = torch.stack(self.data, dim=0)
         # ...and the parameters that were used to generate them
-        self.params = torch.cat(self.params, dim=0)
+        self.params = torch.stack(self.params, dim=0)
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, idx):
+        return self.data[idx, :], self.params[idx]

@@ -28,9 +28,9 @@ def train_in_context_models(dx, dy, dh, dataset_size):
 
     datasets_nonlinear = datasets.ContextDataset(1000, dataset_size, 'NonLinear', 1, 1, dh=20)
     datasets_nonlinear_test = datasets.ContextDataset(1, dataset_size, 'NonLinear', 1, 1, dh=20)
-    model_nonlinear = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'NonLinear', 'forward-kl', dh=20)
+    model_nonlinear = in_context_models.InContextModel(dx, dy, 512, 4, 5, 'NonLinear', 'mle-params', dh=20)
 
-    train(model_nonlinear, datasets_nonlinear, iterations=10000, batch_size=100, eval_dataset=datasets_linear_test)
+    train(model_nonlinear, datasets_nonlinear, iterations=10000, batch_size=100, eval_dataset=datasets_nonlinear_test)
 
 def train_classical_models(dx, dy, dh, dataset_size):
     # Create underlying ground truth models and datasets for training classical models

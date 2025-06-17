@@ -112,7 +112,7 @@ class InContextModel(nn.Module):
 
         X = torch.linspace(0, 1, 128)
 
-        model_predictions = self.eval_model.forward(torch.stack((X, X), dim=0).unsqueeze(-1), torch.stack((pred_params, gt_params), dim=0))
+        model_predictions = self.eval_model.forward(torch.stack((X, X), dim=0).unsqueeze(-1), torch.cat((pred_params, gt_params), dim=0))
         plt.plot(X.detach().numpy(), model_predictions[0, :, :].detach().numpy())
         plt.plot(X.detach().numpy(), model_predictions[1, :, :].detach().numpy())
         plt.show()

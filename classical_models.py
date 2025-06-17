@@ -3,7 +3,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import init
-
+from config import dataset_size_classical
 from sample import sample_normal
 
 
@@ -67,6 +67,19 @@ class NonLinear(nn.Module):
             self.linear2.bias.flatten()
         ])
 
+    def plot_eval(self, gt_model, loss_fns):
+        # we need the gt params to plot
+        X = torch.linspace(0, 1, 128).unsqueeze(1)
+        num_samples = 20
+        Y_pred = self(X)
+        for i in range(1, num_samples):
+            Y_pred += self(X)
+        Y_pred = Y_pred / num_samples
+        Y_gt = gt_model(X)
+        plt.plot(X.detach().numpy(), Y_pred.detach().numpy())
+        plt.plot(X.detach().numpy(), Y_gt.detach().numpy())
+        plt.show()
+
 class NonLinearVariational(NonLinear):
     def __init__(self, dx, dy, dh=100):
         super().__init__(dx, dy, dh)
@@ -98,9 +111,16 @@ class NonLinearVariational(NonLinear):
         kl_div = 0.5 * ((L * (self.var - torch.log(self.var) - 1)) +
                         torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
                         torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
-        print("MSE: " + str(loss_fns["MSE"](prediction, Y)))
+        sse = torch.sum((prediction-Y)**2)
+        sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
+        print("MSE: " + str(sse))
         print("KL: " + str(kl_div))
-        return loss_fns["MSE"](prediction, Y) * 10 + kl_div
+        return sse + kl_div
+
+
+
+
+
 
 
 class Linear(nn.Module):
@@ -165,6 +185,19 @@ class Linear(nn.Module):
         prediction = self(X)
         return loss_fns["MSE"](prediction, Y)
 
+    def plot_eval(self, gt_model, loss_fns):
+        # we need the gt params to plot
+        X = torch.linspace(0, 1, 128).unsqueeze(1)
+        num_samples = 20
+        Y_pred = self(X)
+        for i in range(1, num_samples):
+            Y_pred += self(X)
+        Y_pred = Y_pred / num_samples
+        Y_gt = gt_model(X)
+        plt.plot(X.detach().numpy(), Y_pred.detach().numpy())
+        plt.plot(X.detach().numpy(), Y_gt.detach().numpy())
+        plt.show()
+
 
 class LinearVariational(Linear):
     def __init__(self, dx, dy, order=1):
@@ -188,9 +221,11 @@ class LinearVariational(Linear):
 
         prediction = self(X)
         kl_div = 0.5 * (self.dy * self.K * (self.var - torch.log(self.var) - 1) + torch.sum(self.mus ** 2))
-        print("MSE: " + str(loss_fns["MSE"](prediction, Y)))
+        print("MSE:", torch.sum((prediction-Y)**2))  # account for dataset size? or not?
         print("KL: " + str(kl_div))
-        return loss_fns["MSE"](prediction, Y) * 10 + kl_div
+        sse = torch.sum((prediction-Y)**2)
+        sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
+        return sse + kl_div
 
 
 def test_linear():

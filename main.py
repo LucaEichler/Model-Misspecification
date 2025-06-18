@@ -23,7 +23,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters)
                   eval_dataset=dataset)
 
 
-def train_classical_models(dx, dy, dh, dataset_size):
+def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     # Create underlying ground truth models and datasets for training classical models
 
     gt_linear = Linear(dx, dy, order=1)
@@ -43,7 +43,7 @@ def train_classical_models(dx, dy, dh, dataset_size):
         for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                       LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                       NonLinearVariational(dx, dy, dh)]:
-            train(model, dataset[1], iterations=10000, batch_size=100, gt_model=dataset[0])
+            train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0])
 
     return gt_linear, gt_linear_2, gt_nonlinear
 
@@ -83,6 +83,6 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     return loss
 
 
-train_classical_models(dx=1, dy=1, dh=10, dataset_size=dataset_size_classical)
+train_classical_models(dx=1, dy=1, dh=10, dataset_size=dataset_size_classical, num_iters=1000)
 train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                         dataset_size=config.dataset_size_in_context, num_iters=5000)

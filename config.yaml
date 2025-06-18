@@ -24,5 +24,5 @@ dataset_size_classical: 1000
 # ====================================================================================
 
 lr_in_context: 0.001
-dataset_size_in_context: 50
-dataset_amount: 10
+dataset_size_in_context: 100
+dataset_amount: 10000

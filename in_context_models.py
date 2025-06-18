@@ -68,7 +68,12 @@ class InContextModel(nn.Module):
         # Transformer directly maps to parameters
         return self.transformer(x)
 
+
     def compute_loss(self, batch, loss_fns):
+        loss, *_ = self.compute_forward(batch, loss_fns)
+        return loss
+
+    def compute_forward(self, batch, loss_fns):
         datasets_in, gt_params = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
         datasets_in_Y = datasets_in[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
@@ -111,11 +116,10 @@ class InContextModel(nn.Module):
         eval_data, gt_params = eval_data_batch
 
         num_samples = 20
-        loss, datasets_in, datasets_in_Y, pred_params, _ = self.compute_loss(eval_data_batch, loss_fns)
+        loss, datasets_in, datasets_in_Y, pred_params, _ = self.compute_forward(eval_data_batch, loss_fns)
         for i in range (1,num_samples):
-            loss, datasets_in, datasets_in_Y, x, _ = self.compute_loss(eval_data_batch, loss_fns)
+            loss, datasets_in, datasets_in_Y, x, _ = self.compute_forward(eval_data_batch, loss_fns)
             pred_params = torch.cat((pred_params, x),dim=0)
-        #pred_params = pred_params / num_samples
 
         X = torch.linspace(-5, 5, 128)
 

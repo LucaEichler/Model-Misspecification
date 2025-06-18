@@ -12,7 +12,7 @@ from config import dataset_size_classical, device
 
 def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters):
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
-    model_specs = [('Linear', {'order': 1}), 'Linear', {'order': 2}, 'NonLinear', {'dh': dh}]
+    model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': dh})]
 
     for model_spec in model_specs:
         for loss in losses:
@@ -83,4 +83,4 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
 
 
 # train_classical_models(dx=1, dy=1, dh=10, dataset_size=dataset_size_classical)
-train_in_context_models(dx=1, dy=1, dh=10, dataset_amount=1000, dataset_size=50, num_iters=100)
+train_in_context_models(dx=1, dy=1, dh=10, dataset_amount=1000, dataset_size=50, num_iters=10)

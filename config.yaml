@@ -10,6 +10,7 @@
 device: "cuda"
 num_datasets: 10
 noise_std: 0.1
+dh: 10
 
 # ====================================================================================
 # Parameters for Classical Models
@@ -17,3 +18,11 @@ noise_std: 0.1
 
 lr_classical: 0.001
 dataset_size_classical: 1000
+
+# ====================================================================================
+# Parameters for In-Context Models
+# ====================================================================================
+
+lr_in_context: 0.001
+dataset_size_in_context: 50
+dataset_amount: 10

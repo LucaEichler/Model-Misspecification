@@ -3,7 +3,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import init
-from config import dataset_size_classical, device
+from config import dataset_size_classical, device, weight_decay_classical as weight_decay
 from sample import sample_normal
 
 
@@ -54,7 +54,8 @@ class NonLinear(nn.Module):
     def compute_loss(self, batch, loss_fns):
         X, Y = batch
         prediction = self(X)
-        return loss_fns["MSE"](prediction, Y)
+        l2_penalty = weight_decay * torch.sum(self.get_W() ** 2)
+        return loss_fns["MSE"](prediction, Y) + l2_penalty
 
     def count_params(self):
         return self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
@@ -185,7 +186,8 @@ class Linear(nn.Module):
     def compute_loss(self, batch, loss_fns):
         X, Y = batch
         prediction = self(X)
-        return loss_fns["MSE"](prediction, Y)
+        l2_penalty = weight_decay * torch.sum(self.W.flatten() ** 2)
+        return loss_fns["MSE"](prediction, Y) + l2_penalty
 
     def plot_eval(self, gt_model, loss_fns):
         # we need the gt params to plot

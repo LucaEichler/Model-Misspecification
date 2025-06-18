@@ -2,7 +2,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from classical_models import Linear, NonLinear
-from config import device
+from config import device, weight_decay_in_context as weight_decay
 
 
 class Transformer(nn.Module):
@@ -106,7 +106,10 @@ class InContextModel(nn.Module):
             return mse + torch.sum(torch.exp(logvariances)-logvariances-1+means**2, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, model_predictions
 
         if self.loss == 'mle-dataset':
-            return mse, datasets_in, datasets_in_Y, pred_params, model_predictions
+            # weight decay term
+            l2_penalty = weight_decay*torch.sum(pred_params ** 2, dim=-1).mean()
+            loss = mse + l2_penalty
+            return loss, datasets_in, datasets_in_Y, pred_params, model_predictions
 
         if self.loss == 'mle-params':
             # simply optimize MSE between predicted parameters and ground truth

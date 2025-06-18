@@ -12,5 +12,6 @@ with open(config_path) as f:
     dataset_size_in_context = config.get("dataset_size_in_context")
     dh = config.get("dh")
     dataset_amount = config.get("dataset_amount")
-
+    weight_decay_in_context = config.get("weight_decay_in_context")
+    weight_decay_classical = config.get("weight_decay_classical")
     device = torch.device(config.get("device") if torch.cuda.is_available() else "cpu")

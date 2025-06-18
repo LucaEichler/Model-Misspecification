@@ -18,6 +18,7 @@ dh: 10
 
 lr_classical: 0.001
 dataset_size_classical: 1000
+weight_decay_classical: 0.00001
 
 # ====================================================================================
 # Parameters for In-Context Models
@@ -26,3 +27,4 @@ dataset_size_classical: 1000
 lr_in_context: 0.001
 dataset_size_in_context: 100
 dataset_amount: 10000
+weight_decay_in_context: 0.00001

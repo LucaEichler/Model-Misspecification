@@ -154,7 +154,7 @@ class Linear(nn.Module):
             x = x.view(batch_size, x.size(2))
 
         # bias
-        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
+        ones = torch.ones((batch_size, 1))  # (batch_size, 1)
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
@@ -167,7 +167,7 @@ class Linear(nn.Module):
             phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1+dx+dx**2)
 
         if batched:
-            phi = phi.view(W.size(0), prev_size, phi.size(1))
+            phi = phi.view(W.size(0), prev_size, phi.size(1)).to(device)
             return torch.bmm(W, phi.transpose(1, 2)).transpose(1, 2)
 
         # perform matrix multiplication (multiply the weight matrix W with the

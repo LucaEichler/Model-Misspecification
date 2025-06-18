@@ -144,7 +144,7 @@ class Linear(nn.Module):
         :return: (batch_size, dy)
         """
 
-        x.to(device)
+        x = x.to(device)
         batch_size = x.size(0)
 
         batched = W is not None

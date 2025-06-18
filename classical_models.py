@@ -155,9 +155,13 @@ class Linear(nn.Module):
 
         # bias
         ones = torch.ones((batch_size, 1))  # (batch_size, 1)
+        print('x: ', x.device)
+        print('ones: ', ones.device)
+
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
+
 
         # calculate the outer product of each input vector with itself to get all second order basis functions
         if self.order == 2:

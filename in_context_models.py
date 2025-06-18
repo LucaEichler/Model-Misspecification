@@ -124,3 +124,4 @@ class InContextModel(nn.Module):
         plt.xlim(-5, 5)
         plt.ylim(-5, 5)
         plt.show()
+        plt.savefig("./plot.png")

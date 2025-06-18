@@ -155,8 +155,7 @@ class Linear(nn.Module):
 
         # bias
         ones = torch.ones((batch_size, 1))  # (batch_size, 1)
-        print('x: ', x.device)
-        print('ones: ', ones.device)
+
 
 
         # basis function vectors

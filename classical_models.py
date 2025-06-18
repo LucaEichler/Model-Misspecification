@@ -3,7 +3,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import init
-from config import dataset_size_classical
+from config import dataset_size_classical, device
 from sample import sample_normal
 
 
@@ -154,7 +154,7 @@ class Linear(nn.Module):
             x = x.view(batch_size, x.size(2))
 
         # bias
-        ones = torch.ones((batch_size, 1))  # (batch_size, 1)
+        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)

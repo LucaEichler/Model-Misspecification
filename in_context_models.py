@@ -52,7 +52,7 @@ class InContextModel(nn.Module):
 
         # Create model which will be used for evaluation and freeze its parameters
         # With the batched forward, freezing should not be needed, maybe remove later
-        self.eval_model = eval(output_model)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
+        self.eval_model = eval(output_model)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
         for param in self.eval_model.parameters():
             param.requires_grad = False
 

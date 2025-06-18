@@ -2,6 +2,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from classical_models import Linear, NonLinear
+from config import device
 
 
 class Transformer(nn.Module):
@@ -51,7 +52,7 @@ class InContextModel(nn.Module):
 
         # Create model which will be used for evaluation and freeze its parameters
         # With the batched forward, freezing should not be needed, maybe remove later
-        self.eval_model = eval(output_model)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
+        self.eval_model = eval(output_model)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
         for param in self.eval_model.parameters():
             param.requires_grad = False
 

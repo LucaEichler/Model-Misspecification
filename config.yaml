@@ -25,6 +25,6 @@ weight_decay_classical: 0.00001
 # ====================================================================================
 
 lr_in_context: 0.001
-dataset_size_in_context: 100
-dataset_amount: 10000
+dataset_size_in_context: 50
+dataset_amount: 10
 weight_decay_in_context: 0.00001

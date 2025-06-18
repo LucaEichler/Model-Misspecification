@@ -17,7 +17,7 @@ def sample_dataset(dataset_size, model, noise_std=0.1):
 
     # compute y values
     Y = model(torch.from_numpy(X).float())
-    Y = Y.detach().numpy()
+    Y = Y.detach().cpu().numpy()
 
     # add noise
     Y = Y + sample_normal(shape=Y.shape, mean=0, std=noise_std)

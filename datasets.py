@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset
 from sample import sample_normal
 from classical_models import Linear, NonLinear
+from config import device
 
 
 def sample_dataset(dataset_size, model, noise_std=0.1):
@@ -37,7 +38,7 @@ class PointDataset(Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx):
-        return torch.from_numpy(self.X[idx]).float(), torch.from_numpy(self.Y[idx]).float()
+        return torch.from_numpy(self.X[idx]).float().to(device), torch.from_numpy(self.Y[idx]).float().to(device)
 
 
 class ContextDataset(Dataset):
@@ -67,4 +68,4 @@ class ContextDataset(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :], self.params[idx]
+        return self.data[idx, :].to(device), self.params[idx].to(device)

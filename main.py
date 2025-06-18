@@ -7,7 +7,7 @@ import in_context_models
 import plotting
 from classical_models import Linear, LinearVariational, NonLinear, NonLinearVariational
 import datasets
-from config import dataset_size_classical
+from config import dataset_size_classical, device
 
 
 
@@ -18,13 +18,13 @@ def train_in_context_models(dx, dy, dh, dataset_size):
 
     datasets_linear2 = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=2)
     datasets_linear2_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=2)
-    model_linear2 = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'Linear', 'backward-kl', order=2)
+    model_linear2 = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'Linear', 'forward-kl', order=2)
 
     datasets_nonlinear = datasets.ContextDataset(1000, dataset_size, 'NonLinear', 1, 1, dh=20)
     datasets_nonlinear_test = datasets.ContextDataset(1, dataset_size, 'NonLinear', 1, 1, dh=20)
     model_nonlinear = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'NonLinear', 'forward-kl', dh=20)
 
-    train(model_nonlinear, datasets_nonlinear, iterations=10000, batch_size=100, eval_dataset=datasets_nonlinear_test)
+    train(model_linear2, datasets_linear2, iterations=10000, batch_size=100, eval_dataset=datasets_linear2_test)
 
 def train_classical_models(dx, dy, dh, dataset_size):
     # Create underlying ground truth models and datasets for training classical models
@@ -52,6 +52,7 @@ def train_classical_models(dx, dy, dh, dataset_size):
 
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None):
+    model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:
         eval_dataset = dataset

@@ -134,7 +134,7 @@ class Linear(nn.Module):
             self.K = int(1 + dx + dx ** 2)
 
         # initialize parameters according to N(0,I)
-        self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float()).to(device)
 
     def forward(self, x, W=None):
         """

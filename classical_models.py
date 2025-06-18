@@ -51,9 +51,9 @@ class NonLinear(nn.Module):
             print('b2: ', b2.device)
             print('x: ', x.device)
 
-            x1 = torch.bmm(w1, x.transpose(1, 2)).transpose(1, 2) + b1.unsqueeze(1)
+            x1 = torch.bmm(w1, x.transpose(1, 2).to(device)).transpose(1, 2) + b1.unsqueeze(1)
             x1 = torch.relu(x1)
-            return torch.bmm(w2, x1.transpose(1, 2)).transpose(1, 2) + b2.unsqueeze(1)
+            return torch.bmm(w2, x1.transpose(1, 2).to(device)).transpose(1, 2) + b2.unsqueeze(1)
 
         return self.linear2(self.relu(self.linear1(x)))
 

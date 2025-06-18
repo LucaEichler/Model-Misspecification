@@ -143,7 +143,7 @@ class Linear(nn.Module):
         :param W: use this if batched multiplication is required
         :return: (batch_size, dy)
         """
-        print(self)
+        print(self.device)
         x = x.to(device)
         batch_size = x.size(0)
 

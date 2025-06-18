@@ -175,8 +175,6 @@ class Linear(nn.Module):
 
         # perform matrix multiplication (multiply the weight matrix W with the
         # basis function vector phi of dimensionality K)
-        print('W: ', self.W.device)
-        print('phi: ', phi.device)
         return torch.matmul(self.W, phi.T).T  # (batch_size, dy)
 
     def count_params(self):

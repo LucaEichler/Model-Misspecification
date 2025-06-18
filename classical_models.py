@@ -144,6 +144,7 @@ class Linear(nn.Module):
         :return: (batch_size, dy)
         """
 
+        x.to(device)
         batch_size = x.size(0)
 
         batched = W is not None
@@ -154,10 +155,9 @@ class Linear(nn.Module):
             x = x.view(batch_size, x.size(2))
 
         # bias
-        ones = torch.ones((batch_size, 1))  # (batch_size, 1)
+        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
         print('x: ', x.device)
         print('ones: ', ones.device)
-
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)

@@ -10,21 +10,17 @@ import datasets
 from config import dataset_size_classical, device
 
 
+def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters):
+    losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
+    model_specs = [('Linear', {'order': 1}), 'Linear', {'order': 2}, 'NonLinear', {'dh': dh}]
 
-def train_in_context_models(dx, dy, dh, dataset_size):
-    datasets_linear = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=1)
-    datasets_linear_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=1)
-    model_linear = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'Linear', 'backward-kl', order=1)
+    for model_spec in model_specs:
+        for loss in losses:
+            model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
+            dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
+            train(model, dataset, iterations=num_iters, batch_size=100,
+                  eval_dataset=dataset)
 
-    datasets_linear2 = datasets.ContextDataset(1000, dataset_size, 'Linear', 1, 1, order=2)
-    datasets_linear2_test = datasets.ContextDataset(1, dataset_size, 'Linear', 1, 1, order=2)
-    model_linear2 = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'Linear', 'forward-kl', order=2)
-
-    datasets_nonlinear = datasets.ContextDataset(1000, dataset_size, 'NonLinear', 1, 1, dh=20)
-    datasets_nonlinear_test = datasets.ContextDataset(1, dataset_size, 'NonLinear', 1, 1, dh=20)
-    model_nonlinear = in_context_models.InContextModel(dx, dy, 32, 4, 5, 'NonLinear', 'forward-kl', dh=20)
-
-    train(model_nonlinear, datasets_nonlinear, iterations=10000, batch_size=100, eval_dataset=datasets_nonlinear_test)
 
 def train_classical_models(dx, dy, dh, dataset_size):
     # Create underlying ground truth models and datasets for training classical models
@@ -57,7 +53,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     if eval_dataset is not None:
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) # lr 0.001 for classical, 0.0001 for context
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # lr 0.001 for classical, 0.0001 for context
     # weight decay (?)
 
     loss_fns = {"MSE": torch.nn.MSELoss()}
@@ -75,9 +71,6 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
             model.plot_eval(gt_model, loss_fns)
 
 
-
-
-
 def train_step(model, optimizer, loss_fns, dataloader, it):
     model.train()
     model.zero_grad()
@@ -89,6 +82,5 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     return loss
 
 
-
 # train_classical_models(dx=1, dy=1, dh=10, dataset_size=dataset_size_classical)
-train_in_context_models(dx=1, dy=1, dh=100, dataset_size=50)
+train_in_context_models(dx=1, dy=1, dh=10, dataset_amount=1000, dataset_size=50, num_iters=100)

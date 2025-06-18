@@ -108,11 +108,19 @@ class InContextModel(nn.Module):
 
     def plot_eval(self, eval_data_batch, loss_fns):
         eval_data, gt_params = eval_data_batch
+
+        num_samples = 20
         loss, datasets_in, datasets_in_Y, pred_params, _ = self.compute_loss(eval_data_batch, loss_fns)
+        for i in range (1,num_samples):
+            loss, datasets_in, datasets_in_Y, x, _ = self.compute_loss(eval_data_batch, loss_fns)
+            pred_params = torch.cat((pred_params, x),dim=0)
+        #pred_params = pred_params / num_samples
 
-        X = torch.linspace(0, 1, 128)
+        X = torch.linspace(-5, 5, 128)
 
-        model_predictions = self.eval_model.forward(torch.stack((X, X), dim=0).unsqueeze(-1), torch.cat((pred_params, gt_params), dim=0))
-        plt.plot(X.detach().numpy(), model_predictions[0, :, :].detach().numpy())
-        plt.plot(X.detach().numpy(), model_predictions[1, :, :].detach().numpy())
+        model_predictions = self.eval_model.forward(X.unsqueeze(0).repeat(num_samples + 1, 1).unsqueeze(-1), torch.cat((pred_params, gt_params), dim=0))
+        plt.plot(X.detach().numpy(), torch.mean(model_predictions[0:num_samples, :, :], dim=0).detach().numpy())
+        plt.plot(X.detach().numpy(), model_predictions[-1, :, :].detach().numpy())
+        plt.xlim(-5, 5)
+        plt.ylim(-5, 5)
         plt.show()

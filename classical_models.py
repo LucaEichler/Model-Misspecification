@@ -45,12 +45,6 @@ class NonLinear(nn.Module):
             w2 = W[:, w1_dim + b1_dim:w1_dim + b1_dim + w2_dim].view(B, self.dy, self.dh)
             b2 = W[:, -b2_dim:].view(B, self.dy)
 
-            print('w1: ', w1.device)
-            print('w2: ', w2.device)
-            print('b1: ', b1.device)
-            print('b2: ', b2.device)
-            print('x: ', x.device)
-
             x1 = torch.bmm(w1, x.transpose(1, 2).to(device)).transpose(1, 2) + b1.unsqueeze(1)
             x1 = torch.relu(x1)
             return torch.bmm(w2, x1.transpose(1, 2).to(device)).transpose(1, 2) + b2.unsqueeze(1)

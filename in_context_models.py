@@ -120,8 +120,8 @@ class InContextModel(nn.Module):
         X = torch.linspace(-5, 5, 128)
 
         model_predictions = self.eval_model.forward(X.unsqueeze(0).repeat(num_samples + 1, 1).unsqueeze(-1), torch.cat((pred_params, gt_params), dim=0))
-        plt.plot(X.detach().numpy(), torch.mean(model_predictions[0:num_samples, :, :], dim=0).detach().numpy())
-        plt.plot(X.detach().numpy(), model_predictions[-1, :, :].detach().numpy())
+        plt.plot(X.detach().cpu().numpy(), torch.mean(model_predictions[0:num_samples, :, :], dim=0).detach().cpu().numpy())
+        plt.plot(X.detach().cpu().numpy(), model_predictions[-1, :, :].detach().cpu().numpy())
         plt.xlim(-5, 5)
         plt.ylim(-5, 5)
         plt.show()

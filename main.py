@@ -83,6 +83,6 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     return loss
 
 
-train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=100)
+train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
 train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
-                        dataset_size=config.dataset_size_in_context, num_iters=100)
+                        dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)

@@ -15,3 +15,5 @@ with open(config_path) as f:
     weight_decay_in_context = config.get("weight_decay_in_context")
     weight_decay_classical = config.get("weight_decay_classical")
     device = torch.device(config.get("device") if torch.cuda.is_available() else "cpu")
+    num_iters_classical = config.get("num_iters_classical")
+    num_iters_in_context = config.get("num_iters_in_context")

@@ -48,7 +48,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     return gt_linear, gt_linear_2, gt_nonlinear
 
 
-def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None):
+def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
     model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:
@@ -64,12 +64,15 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
         tqdm_batch.set_postfix({"loss": loss})
 
         # plotting in case of amortized models
-        if it % 10 == 0 and eval_dataset is not None:
-            eval_data_batch = next(iter(eval_dataloader))
-            model.plot_eval(eval_data_batch, loss_fns)
-        # plotting in case of classical models
-        elif it % 500 == 0 and gt_model is not None:
-            model.plot_eval(gt_model, loss_fns)
+        if plot:
+            if it % 10 == 0 and eval_dataset is not None:
+                eval_data_batch = next(iter(eval_dataloader))
+                model.plot_eval(eval_data_batch, loss_fns)
+            # plotting in case of classical models
+            elif it % 500 == 0 and gt_model is not None:
+                model.plot_eval(gt_model, loss_fns)
+
+    return model
 
 
 def train_step(model, optimizer, loss_fns, dataloader, it):
@@ -82,7 +85,7 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     optimizer.step()
     return loss
 
-
-train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
-train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
-                        dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)
+if __name__ == "__main__":
+    train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
+    train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
+                            dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)

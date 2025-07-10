@@ -114,8 +114,6 @@ class NonLinearVariational(NonLinear):
                         torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
         sse = torch.sum((prediction-Y)**2)
         sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
-        print("MSE: " + str(sse))
-        print("KL: " + str(kl_div))
         return sse + kl_div
 
 
@@ -132,10 +130,30 @@ class Linear(nn.Module):
         self.order = order
         self.K = 1 + dx
         if self.order == 2:
-            self.K = int(1 + dx + dx ** 2)
+            self.K = int(1 + dx + dx*(dx+1)/2)
 
         # initialize parameters according to N(0,I)
         self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float()).to(device)
+
+    def get_design_matrix(self, x):
+        batch_size = x.size(0)
+
+        # bias
+        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
+
+        # basis function vectors
+        phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
+
+        # calculate the outer product of each input vector with itself to get all second order basis functions
+        if self.order == 2:
+            # TODO check if 2nd order term symmetries removed correctly
+            outer_products = torch.einsum('ni,nj->nij', x, x)  # (batch size, dx, dx)
+            idxs = torch.triu_indices(outer_products.size(1), outer_products.size(2))
+            outer_products = outer_products[:, idxs[0],
+                             idxs[1]]  # keep only upper triangular matrix to remove duplicate terms
+            phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1 + dx + dx*(dx+1)/2)
+
+        return phi
 
     def forward(self, x, W=None):
         """
@@ -154,20 +172,11 @@ class Linear(nn.Module):
             prev_size = x.size(1)
             x = x.view(batch_size, x.size(2))
 
+
+        phi = self.get_design_matrix(x)
+
         # bias
         ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
-
-
-        # basis function vectors
-        phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
-
-
-        # calculate the outer product of each input vector with itself to get all second order basis functions
-        if self.order == 2:
-            outer_products = torch.einsum('ni,nj->nij', x, x)  # (batch size, dx, dx)
-            outer_products = outer_products.view(outer_products.size(0),
-                                                 outer_products.size(1) ** 2)  # (batch_size, dx**2)
-            phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1+dx+dx**2)
 
         if batched:
             phi = phi.view(W.size(0), prev_size, phi.size(1)).to(device)
@@ -202,6 +211,11 @@ class Linear(nn.Module):
         plt.plot(X.detach().numpy(), Y_gt.detach().numpy())
         plt.show()
 
+    def closed_form_solution(self, x, y):
+        #TODO: Implement for variational methods too
+        phi = self.get_design_matrix(x)
+        return torch.linalg.pinv(phi) @ y
+
 
 class LinearVariational(Linear):
     def __init__(self, dx, dy, order=1):
@@ -225,11 +239,18 @@ class LinearVariational(Linear):
 
         prediction = self(X)
         kl_div = 0.5 * (self.dy * self.K * (self.var - torch.log(self.var) - 1) + torch.sum(self.mus ** 2))
-        print("MSE:", torch.sum((prediction-Y)**2))  # account for dataset size? or not?
-        print("KL: " + str(kl_div))
         sse = torch.sum((prediction-Y)**2)
         sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
         return sse + kl_div
+
+    def get_W(self):
+        # perform MC sampling of parameters from posterior distribution
+        W = torch.zeros_like(self.mus)
+        for i in range(20):
+            W += self.mus + self.var * torch.randn_like(self.mus)
+        W /= 20
+        return W
+
 
 
 def test_linear():

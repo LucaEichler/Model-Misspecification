@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import torch.optim
 from torch.utils.data import DataLoader
 import yaml
@@ -25,27 +27,39 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters)
 
 def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     # Create underlying ground truth models and datasets for training classical models
+    # Also will be the evaluation data used later
+    linear_datasets = []
+    linear_2_datasets = []
+    nonlinear_datasets = []
 
-    gt_linear = Linear(dx, dy, order=1)
-    ds_linear = datasets.PointDataset(dataset_size, gt_linear)
-    linear = (gt_linear, ds_linear)
+    tries = 10 # How many datasets to test on
 
-    gt_linear_2 = Linear(dx, dy, order=2)
-    ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
-    linear_2 = (gt_linear_2, ds_linear_2)
+    for _i in range(0, tries):
+        gt_linear = Linear(dx, dy, order=1)
+        ds_linear = datasets.PointDataset(dataset_size, gt_linear)
+        linear = (gt_linear, ds_linear, [])
 
-    gt_nonlinear = NonLinear(dx, dy, dh)
-    ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
-    nonlinear = (gt_nonlinear, ds_nonlinear)
+        gt_linear_2 = Linear(dx, dy, order=2)
+        ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
+        linear_2 = (gt_linear_2, ds_linear_2, [])
 
-    # Train all combinations
-    for dataset in [linear, linear_2, nonlinear]:
-        for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
-                      LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
-                      NonLinearVariational(dx, dy, dh)]:
-            train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0])
+        gt_nonlinear = NonLinear(dx, dy, dh)
+        ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
+        nonlinear = (gt_nonlinear, ds_nonlinear, [])
 
-    return gt_linear, gt_linear_2, gt_nonlinear
+        linear_datasets.append(linear)
+        linear_2_datasets.append(linear_2)
+        nonlinear_datasets.append(nonlinear)
+
+        # Train all combinations
+        for dataset in [linear, linear_2, nonlinear]:
+            for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
+                          LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
+                          NonLinearVariational(dx, dy, dh)]:
+                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0])
+                dataset[2].append(model_trained)
+
+    return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
@@ -55,7 +69,6 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # lr 0.001 for classical, 0.0001 for context
-    # weight decay (?)
 
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
@@ -86,6 +99,23 @@ def train_step(model, optimizer, loss_fns, dataloader, it):
     return loss
 
 if __name__ == "__main__":
-    train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
+    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
     train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)
+
+    X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
+
+    mse_results = defaultdict(float)
+    for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
+        for elem in model_type:
+            gt = elem[0]
+            classical_models_trained = elem[2]
+
+            Y = gt(X) # ground truth output to compare with
+
+            for i in range(0, len(classical_models_trained)):
+                Y_pred = classical_models_trained[i](X)
+                mse = torch.mean((Y-Y_pred)**2)
+                mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
+
+        print(mse_results)

@@ -216,6 +216,9 @@ class Linear(nn.Module):
         phi = self.get_design_matrix(x)
         return torch.linalg.pinv(phi) @ y
 
+    def _get_name(self):
+        return super()._get_name()+str(self.order)
+
 
 class LinearVariational(Linear):
     def __init__(self, dx, dy, order=1):

@@ -3,7 +3,7 @@ import pandas as pd
 
 import datasets
 
-from classical_models import Linear, NonLinear, LinearVariational
+from classical_models import Linear, NonLinear, LinearVariational, NonLinearVariational
 from main import train
 
 # Check how many points are needed for classical models to converge to the ground truth
@@ -16,13 +16,22 @@ dh = 10
 num_iters = 10000
 order = 1
 
-def get_model_from_name(name):
+def get_model_from_name(name, variational=False):
     if model_name == "linear":
-        model = Linear(2, dim, order=1)
+        if variational:
+            model = LinearVariational(dim, dim, order=1)
+        else:
+            model = Linear(dim, dim, order=1)
     if model_name == "linear-2":
-        model = Linear(2, dim, order=2)
+        if variational:
+            model = LinearVariational(dim, dim, order=2)
+        else:
+            model = Linear(dim, dim, order=2)
     if model_name == "nonlinear":
-        model = NonLinear(2, dim, dh=dh)
+        if variational:
+            model = NonLinearVariational(dim, dim, dh=dh)
+        else:
+            model = NonLinear(dim, dim, dh=dh)
     return model
 
 results = []
@@ -37,7 +46,6 @@ for dim in [1, 10, 100]:
                         ds = datasets.PointDataset(dataset_size, gt, noise_std=noise)
                         model = get_model_from_name(model_name)
                         model_trained = train(model, ds, iterations=num_iters, batch_size=min(dataset_size, 100), gt_model=gt, plot=False)
-
 
                         # calculate closed form MLE solution
                         X, Y = next(iter(DataLoader(ds, batch_size=dataset_size, shuffle=True)))  # get all data points

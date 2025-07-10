@@ -114,8 +114,10 @@ if __name__ == "__main__":
             Y = gt(X) # ground truth output to compare with
 
             for i in range(0, len(classical_models_trained)):
+                classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
 
-        print(mse_results)
+
+    print(mse_results)

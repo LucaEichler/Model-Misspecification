@@ -100,8 +100,12 @@ class NonLinearVariational(NonLinear):
         eps2w = torch.randn_like(self.linear2.weight)
         eps2b = torch.randn_like(self.linear2.bias)
 
-        layer1out = self.relu(self.linear1(x) + torch.matmul(x, (eps1w * self.var).T) + eps1b * self.var)
-        layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * self.var).T) + eps2b * self.var
+        if self.training:
+            layer1out = self.relu(self.linear1(x) + torch.matmul(x, (eps1w * self.var).T) + eps1b * self.var)
+            layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * self.var).T) + eps2b * self.var
+        else:
+            layer1out = self.relu(self.linear1(x))
+            layer2out = self.linear2(layer1out)
         return layer2out
 
     def compute_loss(self, batch, loss_fns):
@@ -232,9 +236,12 @@ class LinearVariational(Linear):
         # delete W (such that it is not a parameter anymore)
         del self.W
 
-    def forward(self, x, **kwargs):
+    def forward(self, x):
         # sample W, use "reparameterization trick"
-        self.W = self.mus + self.var * torch.randn_like(self.mus)
+        if self.training:
+            self.W = self.mus + self.var * torch.randn_like(self.mus)
+        else:
+            self.W = self.mus
         return super().forward(x)
 
     def compute_loss(self, batch, loss_fns):
@@ -247,12 +254,15 @@ class LinearVariational(Linear):
         return sse + kl_div
 
     def get_W(self):
+        # TODO: this function will just regress towards the mean, so maybe just return the means?
         # perform MC sampling of parameters from posterior distribution
         W = torch.zeros_like(self.mus)
         for i in range(20):
             W += self.mus + self.var * torch.randn_like(self.mus)
         W /= 20
         return W
+
+
 
 
 

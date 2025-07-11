@@ -230,8 +230,8 @@ class LinearVariational(Linear):
 
         # now the means and variance become the parameters, and the weights will be sampled during forward
         # TODO check if mus and var should be initialized to zero / one but I think random is correct?
-        self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
-        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float()))
+        self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float()).to(device)
+        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float())).to(device)
 
         # delete W (such that it is not a parameter anymore)
         del self.W

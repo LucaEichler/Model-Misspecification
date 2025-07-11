@@ -63,6 +63,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
+    model.train()
     model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:

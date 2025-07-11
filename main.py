@@ -132,8 +132,13 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(mse_results)
 
+    # average over similar columns to compute mean performance across datasets
+    df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
+
     # Save to disk (choose one or both)
-    df.to_csv("experiment1_results.csv", index=False)
+    df_avg.to_csv("experiment1_results.csv", index=False)
+
+    # TODO: AVERAGE correctly, right now only the last value is taken
 
 
     print(mse_results)

@@ -137,8 +137,11 @@ class Linear(nn.Module):
             self.K = int(1 + dx + dx*(dx+1)/2)
 
         # initialize parameters according to N(0,I)
-        self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        #self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
 
+        self.W = nn.Parameter(
+            torch.from_numpy(sample_normal((self.dy, self.K)).astype(np.float32))
+        )
     def get_design_matrix(self, x):
         batch_size = x.size(0)
 

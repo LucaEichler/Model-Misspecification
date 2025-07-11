@@ -33,7 +33,7 @@ def get_model_from_name(name, variational=False):
             model = NonLinearVariational(dim, dim, dh=dh)
         else:
             model = NonLinear(dim, dim, dh=dh)
-    return model
+    return model.to(device)
 
 results = []
 tries = 10
@@ -51,6 +51,7 @@ for dim in [1, 10, 100]:
                         # calculate closed form MLE solution
                         X, Y = next(iter(DataLoader(ds, batch_size=dataset_size, shuffle=True)))  # get all data points
                         #closed_form_mle_parameters = model_trained.closed_form_solution(X, Y)
+
 
                         mse = ((gt.get_W() - model_trained.get_W())**2).mean()
                         mse_sum += mse

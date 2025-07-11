@@ -33,7 +33,7 @@ def get_model_from_name(name, variational=False):
             model = NonLinearVariational(dim, dim, dh=dh)
         else:
             model = NonLinear(dim, dim, dh=dh)
-    return model.to(device)
+    return model
 
 results = []
 tries = 10

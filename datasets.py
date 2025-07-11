@@ -13,16 +13,16 @@ def sample_dataset(dataset_size, model, noise_std=0.1):
     """
 
     # sample x values
-    X = sample_normal((dataset_size, model.dx))
+    X = torch.randn(dataset_size, model.dx)
 
     # compute y values
-    Y = model(torch.from_numpy(X).float())
-    Y = Y.detach().cpu().numpy()
+    Y = model(X)
 
     # add noise
-    Y = Y + sample_normal(shape=Y.shape, mean=0, std=noise_std)
+    noise = torch.randn_like(Y) * noise_std
+    Y = Y + noise
 
-    return X, Y
+    return X, Y.detach()
 
 
 class PointDataset(Dataset):
@@ -38,7 +38,7 @@ class PointDataset(Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx):
-        return torch.from_numpy(self.X[idx]).float().to(device), torch.from_numpy(self.Y[idx]).float().to(device)
+        return self.X[idx], self.Y[idx]
 
 
 class ContextDataset(Dataset):

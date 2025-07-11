@@ -64,8 +64,6 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
     model.to(device)
-    print([p.data for p in model.parameters()])
-    print(model.W)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:
         eval_dataset = dataset
@@ -74,13 +72,13 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
-        loss = train_step(model, optimizer, loss_fns, dataloader, it)
+        loss = train_step(model, optimizer, loss_fns, iter(dataloader), it)
         tqdm_batch.set_postfix({"loss": loss})
 
         # plotting in case of amortized models
         if plot:
             if it % 10 == 0 and eval_dataset is not None:
-                eval_data_batch = next(iter(eval_dataloader))
+                eval_data_batch = next(iter(eval_dataloader))  #TODO fix iter
                 model.plot_eval(eval_data_batch, loss_fns)
             # plotting in case of classical models
             elif it % 500 == 0 and gt_model is not None:
@@ -89,11 +87,12 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     return model
 
 
-def train_step(model, optimizer, loss_fns, dataloader, it):
+def train_step(model, optimizer, loss_fns, dataloader_it, it):
     model.train()
     model.zero_grad()
+    optimizer.zero_grad()
 
-    batch = next(iter(dataloader))
+    batch = next(dataloader_it)
     loss = model.compute_loss(batch, loss_fns)
     loss.backward()
     optimizer.step()

@@ -13,7 +13,7 @@ def sample_dataset(dataset_size, model, noise_std=0.1):
     """
 
     # sample x values
-    X = torch.randn(dataset_size, model.dx)
+    X = torch.randn(dataset_size, model.dx).to(device)
 
     # compute y values
     Y = model(X)

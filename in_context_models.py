@@ -73,6 +73,23 @@ class InContextModel(nn.Module):
         loss, *_ = self.compute_forward(batch, loss_fns)
         return loss
 
+
+    def predict(self, datasets_in):
+        # Given a dataset, the transformer predicts some parameters
+        # Transpose such that sequence length is first dimension
+        pred_params = self(datasets_in.transpose(0, 1))
+        datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
+        datasets_in_Y = datasets_in[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
+
+        if self.loss in ['forward-kl', 'backward-kl']:
+            # In this case, the parameters consist of means and variances
+            means, logvariances = torch.chunk(pred_params, 2, dim=-1)
+            pred_params = means
+
+        model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)
+
+        return model_predictions
+
     def compute_forward(self, batch, loss_fns):
         datasets_in, gt_params = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset

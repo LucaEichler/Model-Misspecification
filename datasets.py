@@ -56,7 +56,7 @@ class ContextDataset(Dataset):
             # Create new model which will be underlying this dataset
             model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
             X, Y = sample_dataset(ds_size, model, noise_std)
-            self.data.append(torch.cat((torch.from_numpy(X).float(), torch.from_numpy(Y).float()), dim=1))
+            self.data.append(torch.cat((X, Y), dim=1))
             self.params.append(model.get_W())
 
         # Store the actual datasets...

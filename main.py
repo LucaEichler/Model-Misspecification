@@ -17,12 +17,17 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters)
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
     model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': dh})]
 
+    trained_models = []
+
     for model_spec in model_specs:
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
             model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
                   eval_dataset=dataset)
+            trained_models.append((loss, model_trained))
+
+    return trained_models
 
 
 def train_classical_models(dx, dy, dh, dataset_size, num_iters):
@@ -100,7 +105,7 @@ def train_step(model, optimizer, loss_fns, dataloader_it, it):
 
 if __name__ == "__main__":
     linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
-    train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
+    trained_in_context_models = train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)
 
     X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
@@ -113,11 +118,16 @@ if __name__ == "__main__":
 
             Y = gt(X) # ground truth output to compare with
 
-            for i in range(0, len(classical_models_trained)):
+            """for i in range(0, len(classical_models_trained)):
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
+"""
+            for trained_in_context_model in trained_in_context_models:
+                Y_pred = trained_in_context_model[1].predict(torch.cat(elem[1].X, elem[1].Y, dim=-1).unsqueeze(0))
+                mse = torch.mean((Y-Y_pred)**2)
+                mse_results[(gt._get_name(), trained_in_context_models[0], trained_in_context_models[1].eval_model._get_name())] += mse.item()
 
 
 

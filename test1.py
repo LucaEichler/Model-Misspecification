@@ -40,9 +40,9 @@ tries = 1
 for dim in [1, 10, 100]:
     for noise in [0., 0.01, 0.05, 0.1]:
             for dataset_size in [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000]:
-                mse_sum = 0
-                for _i in range(0,tries):
-                    for model_name in ["linear", "linear-2", "nonlinear"]:
+                for model_name in ["linear", "linear-2", "nonlinear"]:
+                    mse_sum = 0
+                    for _ in range(0, tries):
                         gt = get_model_from_name(model_name).to(device)
                         ds = datasets.PointDataset(dataset_size, gt, noise_std=noise)
                         model = get_model_from_name(model_name)
@@ -59,12 +59,12 @@ for dim in [1, 10, 100]:
                         """print("gt parameters: "+str(gt.get_W()))
                         print("trained parameters: "+str(model_trained.get_W()))
                         print("closed form mle parameters: "+str(closed_form_mle_parameters))"""
-                mse_sum /= tries
-                results.append({'model': model_name, 'dataset_size': dataset_size, 'dimensionality': dim, 'noise': noise, 'mse': mse_sum.item()})
-                df = pd.DataFrame(results)
+                    mse_sum /= tries
+                    results.append({'model': model_name, 'dataset_size': dataset_size, 'dimensionality': dim, 'noise': noise, 'mse': mse_sum.item()})
+df = pd.DataFrame(results)
 
-                # Save to disk (choose one or both)
-                df.to_csv("test1_results.csv", index=False)
+# Save to disk (choose one or both)
+df.to_csv("test1_results.csv", index=False)
 
 import seaborn as sns
 import matplotlib.pyplot as plt

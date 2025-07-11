@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import pandas as pd
 import torch.optim
 from torch.utils.data import DataLoader
 import yaml
@@ -110,7 +111,7 @@ if __name__ == "__main__":
 
     X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
 
-    mse_results = defaultdict(float)
+    mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
         for elem in model_type:
             gt = elem[0]
@@ -122,14 +123,17 @@ if __name__ == "__main__":
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
-                mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
+                mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
 
             for trained_in_context_model in trained_in_context_models:
                 Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
                 mse = torch.mean((Y-Y_pred)**2)
-                mse_results[(gt._get_name(), trained_in_context_model[0], trained_in_context_model[1].eval_model._get_name())] += mse.item()
+                mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
 
+    df = pd.DataFrame(mse_results)
 
+    # Save to disk (choose one or both)
+    df.to_csv("experiment1_results.csv", index=False)
 
 
     print(mse_results)

@@ -64,13 +64,13 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
     model.to(device)
+    print([p.data for p in model.parameters()])
+    print(model.W)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     if eval_dataset is not None:
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # lr 0.001 for classical, 0.0001 for context
-    print([p.data for p in model.parameters()])
-    print(model.W)
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:

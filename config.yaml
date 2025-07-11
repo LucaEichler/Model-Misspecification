@@ -7,7 +7,7 @@
 # General Parameters
 # ====================================================================================
 
-device: "cpu"
+device: "cuda"
 num_datasets: 10
 noise_std: 0.1
 dh: 10

@@ -21,7 +21,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters)
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
-            train(model, dataset, iterations=num_iters, batch_size=100,
+            model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
                   eval_dataset=dataset)
 
 
@@ -118,6 +118,8 @@ if __name__ == "__main__":
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
+
+
 
 
     print(mse_results)

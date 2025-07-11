@@ -69,7 +69,8 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # lr 0.001 for classical, 0.0001 for context
-
+    print([p.data for p in model.parameters()])
+    print(model.W)
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:

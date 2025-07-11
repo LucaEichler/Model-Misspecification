@@ -4,6 +4,7 @@ import pandas as pd
 import datasets
 
 from classical_models import Linear, NonLinear, LinearVariational, NonLinearVariational
+from config import device
 from main import train
 
 # Check how many points are needed for classical models to converge to the ground truth
@@ -42,7 +43,7 @@ for dim in [1, 10, 100]:
                 mse_sum = 0
                 for _i in range(0,tries):
                     for model_name in ["linear", "linear-2", "nonlinear"]:
-                        gt = get_model_from_name(model_name)
+                        gt = get_model_from_name(model_name).to(device)
                         ds = datasets.PointDataset(dataset_size, gt, noise_std=noise)
                         model = get_model_from_name(model_name)
                         model_trained = train(model, ds, iterations=num_iters, batch_size=min(dataset_size, 100), gt_model=gt, plot=False)

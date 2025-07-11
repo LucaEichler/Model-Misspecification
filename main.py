@@ -118,16 +118,16 @@ if __name__ == "__main__":
 
             Y = gt(X) # ground truth output to compare with
 
-            """for i in range(0, len(classical_models_trained)):
+            for i in range(0, len(classical_models_trained)):
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results[(gt._get_name(), classical_models_trained[i]._get_name())] += mse.item()
-"""
+
             for trained_in_context_model in trained_in_context_models:
-                Y_pred = trained_in_context_model[1].predict(torch.cat(elem[1].X, elem[1].Y, dim=-1).unsqueeze(0))
+                Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
                 mse = torch.mean((Y-Y_pred)**2)
-                mse_results[(gt._get_name(), trained_in_context_models[0], trained_in_context_models[1].eval_model._get_name())] += mse.item()
+                mse_results[(gt._get_name(), trained_in_context_model[0], trained_in_context_model[1].eval_model._get_name())] += mse.item()
 
 
 

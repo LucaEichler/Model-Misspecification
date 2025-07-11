@@ -137,16 +137,14 @@ class Linear(nn.Module):
             self.K = int(1 + dx + dx*(dx+1)/2)
 
         # initialize parameters according to N(0,I)
-        #self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
 
-        self.W = nn.Parameter(
-            torch.from_numpy(sample_normal((self.dy, self.K)).astype(np.float32))
-        )
+
     def get_design_matrix(self, x):
         batch_size = x.size(0)
 
         # bias
-        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
+        ones = torch.ones((batch_size, 1)).to(self.W.device)  # (batch_size, 1)
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
@@ -169,7 +167,7 @@ class Linear(nn.Module):
         :param W: use this if batched multiplication is required
         :return: (batch_size, dy)
         """
-        x = x.to(device)
+        x = x.to(self.W.device)
         batch_size = x.size(0)
 
         batched = W is not None
@@ -233,8 +231,8 @@ class LinearVariational(Linear):
 
         # now the means and variance become the parameters, and the weights will be sampled during forward
         # TODO check if mus and var should be initialized to zero / one but I think random is correct?
-        self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float()).to(device)
-        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float())).to(device)
+        self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float()))
 
         # delete W (such that it is not a parameter anymore)
         del self.W

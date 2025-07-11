@@ -36,10 +36,10 @@ def get_model_from_name(name, variational=False):
     return model
 
 results = []
-tries = 10
+tries = 1
 for dim in [1, 10, 100]:
     for noise in [0., 0.01, 0.05, 0.1]:
-            for dataset_size in [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000]:
+            for dataset_size in [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000]:
                 mse_sum = 0
                 for _i in range(0,tries):
                     for model_name in ["linear", "linear-2", "nonlinear"]:

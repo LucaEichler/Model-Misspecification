@@ -17,3 +17,4 @@ with open(config_path) as f:
     device = torch.device(config.get("device") if torch.cuda.is_available() else "cpu")
     num_iters_classical = config.get("num_iters_classical")
     num_iters_in_context = config.get("num_iters_in_context")
+    batch_size_in_context = config.get("batch_size_in_context")

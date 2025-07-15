@@ -14,7 +14,7 @@ import datasets
 from config import dataset_size_classical, device
 
 
-def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters):
+def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size, num_iters):
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
     model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': dh})]
 
@@ -24,7 +24,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, num_iters)
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
-            model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
+            model_trained = train(model, dataset, iterations=num_iters, batch_size=batch_size,
                   eval_dataset=dataset)
             trained_models.append((loss, model_trained))
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
     trained_in_context_models = train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
-                            dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)
+                            dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context)
 
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
     X = torch.randn(128).unsqueeze(1)

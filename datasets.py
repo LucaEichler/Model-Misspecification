@@ -90,19 +90,15 @@ class ContextDatasetStream(Dataset):
         data = []
         params = []
 
-
-
-        # Create 'size' amount of datasets which will make up the big context dataset
-        for i in range(self.batch_size):
-            # Create new model which will be underlying this dataset
-            model = eval(self.model_class)(self.dx, self.dy, self.kwargs['order'] if 'order' in self.kwargs else self.kwargs['dh'])
-            X, Y = sample_dataset(self.ds_size, model, self.noise_std)
-            data.append(torch.cat((X, Y), dim=1))
-            params.append(model.get_W())
+        # Create new model which will be underlying this dataset
+        model = eval(self.model_class)(self.dx, self.dy, self.kwargs['order'] if 'order' in self.kwargs else self.kwargs['dh'])
+        X, Y = sample_dataset(self.ds_size, model, self.noise_std)
+        data.append(torch.cat((X, Y), dim=1))
+        params.append(model.get_W())
 
         # Store the actual datasets...
-        data = torch.stack(data, dim=0)
+        data = torch.cat(data, dim=0)
         # ...and the parameters that were used to generate them
-        params = torch.stack(params, dim=0)
+        params = torch.cat(params, dim=0)
         return data.to(device), params.to(device)
 

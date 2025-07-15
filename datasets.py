@@ -18,8 +18,6 @@ def sample_dataset(dataset_size, model, noise_std=0.1):
     # compute y values
     Y = model(X)
 
-
-
     # add noise
     noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
     Y = Y + noise
@@ -56,7 +54,7 @@ class ContextDataset(Dataset):
         # Create 'size' amount of datasets which will make up the big context dataset
         for i in range(size):
             # Create new model which will be underlying this dataset
-            model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh'])
+            model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
             X, Y = sample_dataset(ds_size, model, noise_std)
             self.data.append(torch.cat((X, Y), dim=1))
             self.params.append(model.get_W())
@@ -91,7 +89,7 @@ class ContextDatasetStream(Dataset):
         params = []
 
         # Create new model which will be underlying this dataset
-        model = eval(self.model_class)(self.dx, self.dy, self.kwargs['order'] if 'order' in self.kwargs else self.kwargs['dh'])
+        model = eval(self.model_class)(self.dx, self.dy, self.kwargs['order'] if 'order' in self.kwargs else self.kwargs['dh']).to(device)
         X, Y = sample_dataset(self.ds_size, model, self.noise_std)
         data.append(torch.cat((X, Y), dim=1))
         params.append(model.get_W())

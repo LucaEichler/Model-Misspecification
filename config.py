@@ -21,3 +21,4 @@ with open(config_path) as f:
 
     wandb_project_name = config.get("wandb_project_name")
     wandb_enabled = config.get("wandb_enabled")
+    wandb_exp_name = config.get("wandb_exp_name")

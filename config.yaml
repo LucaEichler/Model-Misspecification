@@ -9,6 +9,7 @@
 
 wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
+wandb_exp_name: "Some Experiments"
 
 device: "cuda"
 num_datasets: 10

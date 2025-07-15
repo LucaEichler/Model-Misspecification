@@ -73,7 +73,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     if config.wandb_enabled:
         wandb.init(
             project=config.wandb_project_name,
-            name="experiment-1",  # Optional run name
+            name=config.wandb_exp_name,
             config={
                 "model_name": model._get_name(),
                 "iterations": iterations,

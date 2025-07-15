@@ -9,14 +9,14 @@
 
 device: "cuda"
 num_datasets: 10
-noise_std: 0.1
+noise_std: 0.05
 dh: 10
 
 # ====================================================================================
 # Parameters for Classical Models
 # ====================================================================================
 
-num_iters_classical: 1
+num_iters_classical: 10000
 lr_classical: 0.001
 dataset_size_classical: 50
 weight_decay_classical: 0.00001
@@ -25,7 +25,7 @@ weight_decay_classical: 0.00001
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 1000
+num_iters_in_context: 10000
 lr_in_context: 0.001
 dataset_size_in_context: 50
 dataset_amount: 100

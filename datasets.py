@@ -31,7 +31,7 @@ class PointDataset(Dataset):
     """
 
     def __init__(self, size, model, noise_std=0.1):
-        self.model = model
+        self.model = model.to(device)
         self.X, self.Y = sample_dataset(size, self.model, noise_std)
 
     def __len__(self):

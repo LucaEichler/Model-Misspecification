@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import pandas as pd
 import torch.optim
+import wandb
 from torch.utils.data import DataLoader
 import yaml
 from tqdm import tqdm
@@ -69,13 +70,24 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
+    if config.wandb_enabled:
+        wandb.init(
+            project=config.wandb_project_name,
+            name="experiment-1",  # Optional run name
+            config={
+                "model_name": model._get_name(),
+                "iterations": iterations,
+                "batch_size": batch_size,
+
+            }
+        )
     model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     data_iter = iter(dataloader)
     if eval_dataset is not None:
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)  # lr 0.001 for classical, 0.0001 for context
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #TODO: learning rate config
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
@@ -85,7 +97,9 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
             data_iter = iter(dataloader)  # restart for fresh epoch
             batch = next(data_iter)
         loss = train_step(model, optimizer, loss_fns, batch, it)
-        tqdm_batch.set_postfix({"loss": loss})
+        if config.wandb_enabled:
+            wandb.log({"loss": loss.item(), "iteration": it})
+        tqdm_batch.set_postfix({"loss": loss.item()})
 
         # plotting in case of amortized models
         if plot:

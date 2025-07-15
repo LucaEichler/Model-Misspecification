@@ -7,6 +7,9 @@
 # General Parameters
 # ====================================================================================
 
+wandb_enabled: True
+wandb_project_name: "Model-Misspecification"
+
 device: "cuda"
 num_datasets: 10
 noise_std: 0.05

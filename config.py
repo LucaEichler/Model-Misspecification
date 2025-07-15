@@ -18,3 +18,6 @@ with open(config_path) as f:
     num_iters_classical = config.get("num_iters_classical")
     num_iters_in_context = config.get("num_iters_in_context")
     batch_size_in_context = config.get("batch_size_in_context")
+
+    wandb_project_name = config.get("wandb_project_name")
+    wandb_enabled = config.get("wandb_enabled")

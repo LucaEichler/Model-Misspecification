@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import DataLoader
 import pandas as pd
 
@@ -6,6 +7,7 @@ import datasets
 from classical_models import Linear, NonLinear, LinearVariational, NonLinearVariational
 from config import device
 from main import train
+import matplotlib.pyplot as plt
 
 # Check how many points are needed for classical models to converge to the ground truth
 # Where possible, compare with closed form solution
@@ -38,8 +40,8 @@ def get_model_from_name(name, variational=False):
 results = []
 tries = 1
 for dim in [1, 10, 100]:
-    for noise in [0., 0.01, 0.05, 0.1]:
-            for dataset_size in [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000]:
+    for noise in [0.0, 0.01, 0.05, 0.1, 0.5]:
+            for dataset_size in [1, 10, 100, 1000]:
                 for model_name in ["linear", "linear-2", "nonlinear"]:
                     mse_sum = 0
                     for _ in range(0, tries):
@@ -51,9 +53,14 @@ for dim in [1, 10, 100]:
                         # calculate closed form MLE solution
                         X, Y = next(iter(DataLoader(ds, batch_size=dataset_size, shuffle=True)))  # get all data points
                         #closed_form_mle_parameters = model_trained.closed_form_solution(X, Y)
+#                        plt.scatter(X.detach().numpy(),Y.detach().numpy())
+                        X = torch.randn(128).unsqueeze(1)
+                        Y = gt(X)
+                        Y_pred = model_trained(X)
+                        """plt.plot(X.detach().numpy(),Y.detach().numpy())
 
-
-                        mse = ((gt.get_W() - model_trained.get_W())**2).mean()
+                        plt.show()"""
+                        mse = ((Y - Y_pred)**2).mean()
                         mse_sum += mse
                         """print("Difference gt parameters - trained params: "+str(mse))"""
                         """print("gt parameters: "+str(gt.get_W()))
@@ -66,13 +73,3 @@ df = pd.DataFrame(results)
 # Save to disk (choose one or both)
 df.to_csv("test1_results.csv", index=False)
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-# Load results
-df = pd.read_csv("test1_results.csv")
-
-# Example plot: metric vs. noise, grouped by dimensionality
-sns.lineplot(data=df, x='noise', y='mse', hue='dimensionality')
-plt.title("Ablations")
-plt.show()

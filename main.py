@@ -71,6 +71,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
     model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    data_iter = iter(dataloader)
     if eval_dataset is not None:
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
@@ -78,38 +79,44 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
-        loss = train_step(model, optimizer, loss_fns, iter(dataloader), it)
+        try:
+            batch = next(data_iter)
+        except StopIteration:
+            data_iter = iter(dataloader)  # restart for fresh epoch
+            batch = next(data_iter)
+        loss = train_step(model, optimizer, loss_fns, batch, it)
         tqdm_batch.set_postfix({"loss": loss})
 
         # plotting in case of amortized models
         if plot:
-            if it % 10 == 0 and eval_dataset is not None:
+            """if it % 10 == 0 and eval_dataset is not None:
                 eval_data_batch = next(iter(eval_dataloader))  #TODO fix iter
                 model.plot_eval(eval_data_batch, loss_fns)
             # plotting in case of classical models
             elif it % 500 == 0 and gt_model is not None:
-                model.plot_eval(gt_model, loss_fns)
+                model.plot_eval(gt_model, loss_fns)"""
 
     return model
 
 
-def train_step(model, optimizer, loss_fns, dataloader_it, it):
+def train_step(model, optimizer, loss_fns, batch, it):
     model.train()
     model.zero_grad()
     optimizer.zero_grad()
 
-    batch = next(dataloader_it)
     loss = model.compute_loss(batch, loss_fns)
     loss.backward()
     optimizer.step()
     return loss
 
 if __name__ == "__main__":
+
     linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
     trained_in_context_models = train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, num_iters=config.num_iters_in_context)
 
-    X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
+    #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
+    X = torch.randn(128).unsqueeze(1)
 
     mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
@@ -122,12 +129,16 @@ if __name__ == "__main__":
             for i in range(0, len(classical_models_trained)):
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
+                Y_pred = torch.randn_like(Y_pred)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
 
             for trained_in_context_model in trained_in_context_models:
                 Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+                Y_pred = torch.randn_like(Y_pred)
+
                 mse = torch.mean((Y-Y_pred)**2)
+
                 mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
 
     df = pd.DataFrame(mse_results)
@@ -137,8 +148,5 @@ if __name__ == "__main__":
 
     # Save to disk (choose one or both)
     df_avg.to_csv("experiment1_results.csv", index=False)
-
-    # TODO: AVERAGE correctly, right now only the last value is taken
-
 
     print(mse_results)

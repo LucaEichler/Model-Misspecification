@@ -110,6 +110,8 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
             elif it % 500 == 0 and gt_model is not None:
                 model.plot_eval(gt_model, loss_fns)"""
 
+    wandb.finish()
+
     return model
 
 

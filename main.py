@@ -103,12 +103,12 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
 
         # plotting in case of amortized models
         if plot:
-            """if it % 10 == 0 and eval_dataset is not None:
+            if it % 10 == 0 and eval_dataset is not None:
                 eval_data_batch = next(iter(eval_dataloader))  #TODO fix iter
                 model.plot_eval(eval_data_batch, loss_fns)
             # plotting in case of classical models
             elif it % 500 == 0 and gt_model is not None:
-                model.plot_eval(gt_model, loss_fns)"""
+                model.plot_eval(gt_model, loss_fns)
 
     wandb.finish()
 
@@ -151,7 +151,6 @@ if __name__ == "__main__":
 
             for trained_in_context_model in trained_in_context_models:
                 Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
-                Y_pred = torch.randn_like(Y_pred)
 
                 mse = torch.mean((Y-Y_pred)**2)
 

@@ -29,7 +29,7 @@ weight_decay_classical: 0.00001
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 1
+num_iters_in_context: 10000
 lr_in_context: 0.001
 dataset_size_in_context: 50
 dataset_amount: 10000

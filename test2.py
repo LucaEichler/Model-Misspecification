@@ -8,10 +8,10 @@ from main import train
 dx = 1
 dy = 1
 dh = 10
-dataset_amount = 100
+dataset_amount = 10000
 dataset_size = 50
-loss = 'backward-kl'
-num_iters = 1000000
+loss = 'forward-kl'
+num_iters = 1000
 
 model_spec = ('NonLinear', {'dh': dh})
 

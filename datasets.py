@@ -68,7 +68,7 @@ class ContextDataset(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :].to(device), self.params[idx].to(device)
+        return self.data[idx, :].to(device).detach(), self.params[idx].to(device).detach()
 
 
 class ContextDatasetStream(Dataset):

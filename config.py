@@ -6,7 +6,6 @@ config_path = "./config.yaml"
 with open(config_path) as f:
     config = yaml.load(f, Loader=yaml.loader.SafeLoader)
 
-    num_datasets = config.get("num_datasets")
     noise_std = config.get("noise_std")
     dataset_size_classical = config.get("dataset_size_classical")
     dataset_size_in_context = config.get("dataset_size_in_context")
@@ -22,3 +21,5 @@ with open(config_path) as f:
     wandb_project_name = config.get("wandb_project_name")
     wandb_enabled = config.get("wandb_enabled")
     wandb_exp_name = config.get("wandb_exp_name")
+
+    learning_rate = config.get("learning_rate")

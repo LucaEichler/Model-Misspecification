@@ -107,7 +107,7 @@ class InContextModel(nn.Module):
             logvariances = torch.clamp(logvariances, min=-10, max=10)
 
             if self.loss == 'forward-kl':
-                pred_params = means + torch.randn_like(means)  # keep for plotting, but definitely change later
+                pred_params = (means + torch.randn_like(means)) # keep for plotting, but definitely change later
 
                 return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
 
@@ -130,7 +130,7 @@ class InContextModel(nn.Module):
 
         if self.loss == 'mle-params':
             # simply optimize MSE between predicted parameters and ground truth
-            return loss_fns["MSE"](pred_params, gt_params), datasets_in, datasets_in_Y, pred_params, model_predictions
+            return torch.mean(torch.sum((pred_params - gt_params)**2)), datasets_in, datasets_in_Y, pred_params, model_predictions
 
     def plot_eval(self, eval_data_batch, loss_fns):
         eval_data, gt_params = eval_data_batch

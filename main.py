@@ -87,7 +87,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     if eval_dataset is not None:
         eval_dataset = dataset
         eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001) #TODO: learning rate config
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate) #TODO: learning rate config
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
@@ -121,20 +121,22 @@ def train_step(model, optimizer, loss_fns, batch, it):
     optimizer.zero_grad()
 
     loss = model.compute_loss(batch, loss_fns)
-    loss.backward()
+    with torch.autograd.profiler.profile(use_cuda=True) as prof:
+        loss.backward()
+    print(prof.key_averages().table(sort_by="cpu_time_total"))
     optimizer.step()
     return loss
 
 if __name__ == "__main__":
 
-    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
+    #linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
     trained_in_context_models = train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context)
 
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
     X = torch.randn(128).unsqueeze(1).to(device)
 
-    mse_results = []
+    """mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
         for elem in model_type:
             gt = elem[0]
@@ -165,4 +167,4 @@ if __name__ == "__main__":
     # Save to disk (choose one or both)
     df_avg.to_csv("experiment1_results.csv", index=False)
 
-    print(mse_results)
+    print(mse_results)"""

@@ -12,9 +12,9 @@ wandb_project_name: "Model-Misspecification"
 wandb_exp_name: "Some Experiments"
 
 device: "cuda"
-num_datasets: 10
 noise_std: 0.0
 dh: 10
+learning_rate: 0.001
 
 # ====================================================================================
 # Parameters for Classical Models
@@ -29,7 +29,7 @@ weight_decay_classical: 0.00001
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 10000
+num_iters_in_context: 2
 lr_in_context: 0.001
 dataset_size_in_context: 50
 dataset_amount: 10000

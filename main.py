@@ -121,9 +121,7 @@ def train_step(model, optimizer, loss_fns, batch, it):
     optimizer.zero_grad()
 
     loss = model.compute_loss(batch, loss_fns)
-    with torch.autograd.profiler.profile(use_cuda=True) as prof:
-        loss.backward()
-    print(prof.key_averages().table(sort_by="cpu_time_total"))
+    loss.backward()
     optimizer.step()
     return loss
 

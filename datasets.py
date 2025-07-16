@@ -51,24 +51,25 @@ class ContextDataset(Dataset):
         self.data = []
         self.params = []
 
-        # Create 'size' amount of datasets which will make up the big context dataset
-        for i in range(size):
-            # Create new model which will be underlying this dataset
-            model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
-            X, Y = sample_dataset(ds_size, model, noise_std)
-            self.data.append(torch.cat((X, Y), dim=1))
-            self.params.append(model.get_W())
+        with torch.no_grad():
+            # Create 'size' amount of datasets which will make up the big context dataset
+            for i in range(size):
+                # Create new model which will be underlying this dataset
+                model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
+                X, Y = sample_dataset(ds_size, model, noise_std)
+                self.data.append(torch.cat((X, Y), dim=1))
+                self.params.append(model.get_W())
 
-        # Store the actual datasets...
-        self.data = torch.stack(self.data, dim=0)
-        # ...and the parameters that were used to generate them
-        self.params = torch.stack(self.params, dim=0)
+            # Store the actual datasets...
+            self.data = torch.stack(self.data, dim=0)
+            # ...and the parameters that were used to generate them
+            self.params = torch.stack(self.params, dim=0)
 
     def __len__(self):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :].to(device).detach().requires_grad_(), self.params[idx].to(device).detach().requires_grad_()
+        return self.data[idx, :].to(device), self.params[idx].to(device)
 
 
 class ContextDatasetStream(Dataset):

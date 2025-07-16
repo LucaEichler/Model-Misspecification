@@ -132,7 +132,7 @@ if __name__ == "__main__":
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context)
 
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
-    X = torch.randn(128).unsqueeze(1)
+    X = torch.randn(128).unsqueeze(1).to(device)
 
     mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:

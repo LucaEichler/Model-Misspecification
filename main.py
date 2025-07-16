@@ -136,7 +136,7 @@ if __name__ == "__main__":
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
     X = torch.randn(128).unsqueeze(1).to(device)
 
-    """mse_results = []
+    mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
         for elem in model_type:
             gt = elem[0]
@@ -167,4 +167,4 @@ if __name__ == "__main__":
     # Save to disk (choose one or both)
     df_avg.to_csv("experiment1_results.csv", index=False)
 
-    print(mse_results)"""
+    print(mse_results)

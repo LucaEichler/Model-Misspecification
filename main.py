@@ -108,7 +108,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
                 model.plot_eval(eval_data_batch, loss_fns)
             # plotting in case of classical models
             elif it % 500 == 0 and gt_model is not None:
-                model.plot_eval(gt_model, loss_fns)""""
+                model.plot_eval(gt_model, loss_fns)"""
 
     wandb.finish()
 

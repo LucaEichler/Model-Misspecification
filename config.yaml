@@ -7,7 +7,7 @@
 # General Parameters
 # ====================================================================================
 
-wandb_enabled: False
+wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
 wandb_exp_name: "Some Experiments"
 

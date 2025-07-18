@@ -2,6 +2,8 @@ from collections import defaultdict
 
 import pandas as pd
 import torch.optim
+from matplotlib import pyplot as plt
+
 import wandb
 from torch.utils.data import DataLoader
 import yaml
@@ -39,7 +41,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     linear_2_datasets = []
     nonlinear_datasets = []
 
-    tries = 10 # How many datasets to test on
+    tries = 5 # How many datasets to test on
 
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)
@@ -125,6 +127,23 @@ def train_step(model, optimizer, loss_fns, batch, it):
     optimizer.step()
     return loss
 
+def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
+    X = torch.linspace(-5, 5, 128).unsqueeze(1).to(device)
+    Y = gt(X)
+    plt.plot(X.detach().numpy(), Y.detach().numpy())
+    plt.scatter(X_eval.detach().numpy(), Y_pred.detach().numpy(), color='orange')
+    plt.text(0.01, 0.99, ds_name, transform=plt.gca().transAxes,
+            fontsize=12, verticalalignment='top', horizontalalignment='left')
+
+    # Upper right
+    plt.text(0.99, 0.99, model_name, transform=plt.gca().transAxes,
+            fontsize=12, verticalalignment='top', horizontalalignment='right')
+    plt.savefig("./plots/"+model_name+" - "+ds_name)
+    plt.show()
+
+
+
+
 if __name__ == "__main__":
 
     linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
@@ -136,6 +155,7 @@ if __name__ == "__main__":
 
     mse_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
+        j=1
         for elem in model_type:
             gt = elem[0]
             classical_models_trained = elem[2]
@@ -152,10 +172,12 @@ if __name__ == "__main__":
             for trained_in_context_model in trained_in_context_models:
                 Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 
+                eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
+
                 mse = torch.mean((Y-Y_pred)**2)
 
                 mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
-
+            j=j+1
     df = pd.DataFrame(mse_results)
 
     # average over similar columns to compute mean performance across datasets
@@ -165,3 +187,4 @@ if __name__ == "__main__":
     df_avg.to_csv("experiment1_results.csv", index=False)
 
     print(mse_results)
+

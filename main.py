@@ -127,7 +127,7 @@ def train_step(model, optimizer, loss_fns, batch, it):
 
 if __name__ == "__main__":
 
-    #linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
+    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
     trained_in_context_models = train_in_context_models(dx=1, dy=1, dh=config.dh, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context)
 

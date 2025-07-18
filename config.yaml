@@ -9,7 +9,7 @@
 
 wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Some Experiments"
+wandb_exp_name: "Convergence Test"
 
 device: "cuda"
 noise_std: 0.0

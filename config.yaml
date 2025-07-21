@@ -9,7 +9,7 @@
 
 wandb_enabled: False
 wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Convergence Test"
+wandb_exp_name: "Random Experiments"
 
 device: "cuda"
 noise_std: 0.0
@@ -32,6 +32,6 @@ weight_decay_classical: 0.00001
 num_iters_in_context: 1
 lr_in_context: 0.001
 dataset_size_in_context: 50
-dataset_amount: 100
+dataset_amount: 10000
 weight_decay_in_context: 0.00001
 batch_size_in_context: 100

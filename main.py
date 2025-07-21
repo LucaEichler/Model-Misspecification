@@ -15,6 +15,13 @@ import plotting
 from classical_models import Linear, LinearVariational, NonLinear, NonLinearVariational
 import datasets
 from config import dataset_size_classical, device
+from early_stopping import EarlyStopping
+
+
+def count_parameters(model):
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total, trainable
 
 
 def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size, num_iters):
@@ -32,6 +39,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size
             trained_models.append((loss, model_trained))
 
     return trained_models
+
 
 
 def train_classical_models(dx, dy, dh, dataset_size, num_iters):
@@ -86,9 +94,10 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     model.to(device)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     data_iter = iter(dataloader)
-    if eval_dataset is not None:
-        eval_dataset = dataset
-        eval_dataloader = DataLoader(eval_dataset, batch_size=1, shuffle=True)
+
+    early_stopping = EarlyStopping(patience=200, min_delta=0)
+
+
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate) #TODO: learning rate config
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
@@ -103,14 +112,8 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
             wandb.log({"loss": loss.item(), "iteration": it})
         tqdm_batch.set_postfix({"loss": loss.item()})
 
-        # plotting in case of amortized models
-        """"if plot:
-            if it % 10 == 0 and eval_dataset is not None:
-                eval_data_batch = next(iter(eval_dataloader))  #TODO fix iter
-                model.plot_eval(eval_data_batch, loss_fns)
-            # plotting in case of classical models
-            elif it % 500 == 0 and gt_model is not None:
-                model.plot_eval(gt_model, loss_fns)"""
+        if early_stopping(loss, model):
+            break
 
     wandb.finish()
 
@@ -131,6 +134,8 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
     X = torch.linspace(-5, 5, 128).unsqueeze(1).to(device)
     Y = gt(X)
     plt.plot(X.detach().numpy(), Y.detach().numpy())
+    plt.xlim(-5, 5)
+    plt.ylim(-5, 5)
     plt.scatter(X_eval.detach().numpy(), Y_pred.detach().numpy(), color='orange')
     plt.text(0.01, 0.99, ds_name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='left')
@@ -184,7 +189,7 @@ if __name__ == "__main__":
     df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
 
     # Save to disk (choose one or both)
-    df_avg.to_csv("experiment1_results.csv", index=False)
+    df_avg.to_csv("experiment1_results2.csv", index=False)
 
     print(mse_results)
 

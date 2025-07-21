@@ -191,7 +191,7 @@ if __name__ == "__main__":
     df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
 
     # Save to disk (choose one or both)
-    df_avg.to_csv("experiment1_results2.csv", index=False)
+    df_avg.to_csv("experiment1_results.csv", index=False)
 
     print(mse_results)
 

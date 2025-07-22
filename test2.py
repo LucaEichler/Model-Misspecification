@@ -11,14 +11,14 @@ from main import eval_plot
 dx = 1
 dy = 1
 dh = 10
-dataset_amount = 100
+dataset_amount = 10000
 dataset_size = 50
 loss = 'mle-params'
 num_iters = 1000
 
 model_spec = ('NonLinear', {'dh': dh})
 
-model = in_context_models.InContextModel(dx, dy, 128, 4, 5, model_spec[0], loss, **model_spec[1])
+model = in_context_models.InContextModel(dx, dy, 512, 4, 5, model_spec[0], loss, **model_spec[1])
 dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
 model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
                   eval_dataset=dataset, lr=0.0001)

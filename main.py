@@ -105,6 +105,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
         try:
             batch = next(data_iter)
         except StopIteration:
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
             data_iter = iter(dataloader)  # restart for fresh epoch
             batch = next(data_iter)
         loss = train_step(model, optimizer, loss_fns, batch, it)

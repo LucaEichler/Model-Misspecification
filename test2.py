@@ -14,7 +14,7 @@ dh = 10
 dataset_amount = 10000
 dataset_size = 50
 loss = 'forward-kl'
-num_iters = 10000
+num_iters = 10
 
 model_spec = ('NonLinear', {'dh': dh})
 

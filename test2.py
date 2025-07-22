@@ -20,8 +20,8 @@ model_spec = ('NonLinear', {'dh': dh})
 
 model = in_context_models.InContextModel(dx, dy, 128, 4, 5, model_spec[0], loss, **model_spec[1])
 dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
-model_trained = train(model, dataset, iterations=num_iters, batch_size=1000,
-                  eval_dataset=dataset, lr=0.0001)
+model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
+                  eval_dataset=dataset, lr=0.001)
 
 for i in range(10):
     gt = NonLinear(dx, dy, dh)

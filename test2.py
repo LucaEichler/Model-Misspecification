@@ -14,7 +14,7 @@ dh = 10
 dataset_amount = 10000
 dataset_size = 50
 loss = 'mle-params'
-num_iters = 1000
+num_iters = 10000
 
 model_spec = ('NonLinear', {'dh': dh})
 

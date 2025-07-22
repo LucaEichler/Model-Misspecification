@@ -11,7 +11,7 @@ from main import eval_plot
 dx = 1
 dy = 1
 dh = 10
-dataset_amount = 1000
+dataset_amount = 10000
 dataset_size = 50
 loss = 'forward-kl'
 num_iters = 1000

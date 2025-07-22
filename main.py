@@ -95,7 +95,7 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     data_iter = iter(dataloader)
 
-    early_stopping = EarlyStopping(patience=200, min_delta=0.)
+    early_stopping = EarlyStopping(patience=1000, min_delta=0.)
 
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr) #TODO: learning rate config

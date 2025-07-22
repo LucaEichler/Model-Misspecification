@@ -107,7 +107,7 @@ class InContextModel(nn.Module):
             logvariances = torch.clamp(logvariances, min=-10, max=10)
 
             if self.loss == 'forward-kl':
-                pred_params = (means + torch.randn_like(means)) # keep for plotting, but definitely change later
+                #pred_params = (means + torch.randn_like(means)) # keep for plotting, but definitely change later
 
                 return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
 

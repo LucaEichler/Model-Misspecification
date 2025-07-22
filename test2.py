@@ -16,7 +16,7 @@ dataset_size = 50
 loss = 'forward-kl'
 num_iters = 1000
 
-model_spec = ('NonLinear', {'dh': dh})
+model_spec = ('Linear', {'order': 1})
 
 model = in_context_models.InContextModel(dx, dy, 128, 4, 5, model_spec[0], loss, **model_spec[1])
 dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])

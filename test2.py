@@ -31,7 +31,7 @@ for i in range(10):
 
     Y_pred = model_trained.predict(torch.cat((ds.X, ds.Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 
-    eval_plot("plot", "plot", gt, X, Y_pred)
+    eval_plot("plot", str(i), gt, X, Y_pred)
 
 
 # needs approx. 10k iterations for convergence

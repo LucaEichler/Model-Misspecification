@@ -35,7 +35,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size
             model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
             model_trained = train(model, dataset, iterations=num_iters, batch_size=batch_size,
-                  eval_dataset=dataset)
+                  eval_dataset=dataset, lr=config.learning_rate)
             trained_models.append((loss, model_trained))
 
     return trained_models
@@ -73,13 +73,13 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
             for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                           LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                           NonLinearVariational(dx, dy, dh)]:
-                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0])
+                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0], lr=config.learning_rate)
                 dataset[2].append(model_trained)
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
-def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True):
+def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True, lr = 0.001):
     if config.wandb_enabled:
         wandb.init(
             project=config.wandb_project_name,
@@ -95,10 +95,10 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     data_iter = iter(dataloader)
 
-    early_stopping = EarlyStopping(patience=200, min_delta=0)
+    early_stopping = EarlyStopping(patience=200, min_delta=0.)
 
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate) #TODO: learning rate config
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr) #TODO: learning rate config
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:

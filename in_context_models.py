@@ -95,6 +95,10 @@ class InContextModel(nn.Module):
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
         datasets_in_Y = datasets_in[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
 
+        """for i in range(datasets_in_X.size(0)):
+            plt.scatter(datasets_in_X[i, :, :].detach().numpy(), datasets_in_Y[i, :, :].detach().numpy())
+            plt.show()"""
+
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
         pred_params = self(datasets_in.transpose(0, 1))

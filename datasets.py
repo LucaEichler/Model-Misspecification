@@ -6,7 +6,7 @@ from classical_models import Linear, NonLinear
 from config import device
 
 
-def sample_dataset(dataset_size, model, noise_std=0.1):
+def sample_dataset(dataset_size, model, noise_std=0.0):
     """
     Sample a dataset of desired size.
     :param model: The model which is applied to generate y values from x values
@@ -30,7 +30,7 @@ class PointDataset(Dataset):
     Dataset class used for classical models, elements of the datasets are (x,y) pairs
     """
 
-    def __init__(self, size, model, noise_std=0.1):
+    def __init__(self, size, model, noise_std):
         self.model = model.to(device)
         self.X, self.Y = sample_dataset(size, self.model, noise_std)
 
@@ -47,7 +47,7 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.1, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, **kwargs):
         self.data = []
         self.params = []
 

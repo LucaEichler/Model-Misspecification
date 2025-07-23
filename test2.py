@@ -10,7 +10,7 @@ from main import eval_plot
 
 dx = 1
 dy = 1
-dh = 10
+dh = 100
 dataset_amount = 10000
 dataset_size = 50
 loss = 'mle-params'

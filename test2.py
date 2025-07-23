@@ -18,7 +18,7 @@ num_iters = 10000
 
 model_spec = ('NonLinear', {'dh': dh})
 
-model = in_context_models.InContextModel(dx, dy, 256, 4, 5, model_spec[0], loss, **model_spec[1])
+model = in_context_models.InContextModel(dx, dy, 1024, 4, 5, model_spec[0], loss, **model_spec[1])
 dataset = datasets.ContextDatasetAlternative(dataset_amount, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])
 model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
                   eval_dataset=dataset, lr=0.0001)

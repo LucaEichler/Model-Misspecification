@@ -30,7 +30,7 @@ class PointDataset(Dataset):
     Dataset class used for classical models, elements of the datasets are (x,y) pairs
     """
 
-    def __init__(self, size, model, noise_std):
+    def __init__(self, size, model, noise_std=0.0):
         self.model = model.to(device)
         self.X, self.Y = sample_dataset(size, self.model, noise_std)
 

@@ -19,6 +19,7 @@ class NonLinear(nn.Module):
 
         # init weights of network layers from standard normal distribution
         self._init_weights()
+        init.zeros_(self.linear2.bias) #TODO keep or remove?
 
     def _init_weights(self):
         for m in self.modules():

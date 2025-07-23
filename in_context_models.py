@@ -134,7 +134,8 @@ class InContextModel(nn.Module):
 
         if self.loss == 'mle-params':
             # simply optimize MSE between predicted parameters and ground truth
-            return torch.mean((pred_params - gt_params)**2), datasets_in, datasets_in_Y, pred_params, model_predictions
+            l2_penalty = weight_decay * torch.sum(pred_params ** 2, dim=-1).mean()
+            return l2_penalty+torch.mean((pred_params - gt_params)**2), datasets_in, datasets_in_Y, pred_params, model_predictions
 
     def plot_eval(self, eval_data_batch, loss_fns):
         eval_data, gt_params = eval_data_batch

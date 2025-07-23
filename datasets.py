@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from sample import sample_normal
 from classical_models import Linear, NonLinear
 from config import device
+from test4 import NonLinearRegression
 
 
 def sample_dataset(dataset_size, model, noise_std=0.0):
@@ -70,6 +71,34 @@ class ContextDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx, :].to(device), self.params[idx].to(device)
+
+
+class ContextDatasetAlternative(Dataset):
+    """
+    Inspired by Mittal et al.
+    """
+
+    def __init__(self, size, ds_size, model_class, dx, dy, batch_size, noise_std=0.0, **kwargs):
+        self.set = NonLinearRegression(dim=1, min_len=49, max_len=50, min_param_len=10, max_param_len=100, h_dim=10,
+                                  n_layers=1, act=torch.relu)
+        self.batch_size = batch_size
+
+
+    def __len__(self):
+        return 100000
+
+    def __getitem__(self, idx):
+        batch = self.set.get_batch(self.batch_size)
+        x_train, y_train = batch[0]
+        params, noiseorso = batch[2]
+        return torch.cat([x_train.transpose(0,1), y_train.transpose(0,1)], dim=-1).to(device), torch.cat((params, torch.zeros_like(params[:, :1])),dim=-1).to(device)
+
+    def get_batch(self):
+        batch = self.set.get_batch(self.batch_size)
+        x_train, y_train = batch[0]
+        params, noiseorso = batch[2]
+        return torch.cat([x_train.transpose(0, 1), y_train.transpose(0, 1)], dim=-1).to(device), torch.cat(
+            (params, torch.zeros_like(params[:, :1])), dim=-1).to(device)
 
 
 class ContextDatasetStream(Dataset):

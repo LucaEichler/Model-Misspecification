@@ -102,11 +102,12 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
-        try:
+        """try:
             batch = next(data_iter)
         except StopIteration:
             data_iter = iter(dataloader)  # restart for fresh epoch
-            batch = next(data_iter)
+            batch = next(data_iter)"""
+        batch = dataset.get_batch()
         loss = train_step(model, optimizer, loss_fns, batch, it)
         if config.wandb_enabled:
             wandb.log({"loss": loss.item(), "iteration": it})

@@ -356,7 +356,7 @@ class NonLinearRegression(Dataset):
         return (x_train, y_train), (x_val, y_val), (
         w, np.log(self.beta) * torch.ones_like(y_train)), mask.byte(), params_mask.byte()
 
-batch_size = 5
+"""batch_size = 5
 set = NonLinearRegression(dim=1, min_len=49, max_len=50, min_param_len=10, max_param_len=100, h_dim=10, n_layers=1, act=torch.relu)
 batch = set.get_batch(batch_size)
 x_train, y_train = batch[0]
@@ -372,7 +372,7 @@ for i in range(batch_size):
     plt.scatter(x_train[:, i, :].detach().numpy(), y_train[:, i, :].detach().numpy())
     plt.scatter(x_train[:, i, :].detach().numpy(), res[:, i, :].detach().numpy(), color='red')
 
-    plt.show()
+    plt.show()"""
 
 
 class NonLinearClassification(Dataset):

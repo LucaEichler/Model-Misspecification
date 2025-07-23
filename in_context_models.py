@@ -93,7 +93,7 @@ class InContextModel(nn.Module):
     def compute_forward(self, batch, loss_fns):
         datasets_in, gt_params = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
-        datasets_in_Y = datasets_in[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
+        datasets_in_Y = datasets_in[:, :, self.dx:self.dx + self.dy]  # the y values for every point in every dataset
 
         """for i in range(datasets_in_X.size(0)):
             plt.scatter(datasets_in_X[i, :, :].detach().numpy(), datasets_in_Y[i, :, :].detach().numpy())

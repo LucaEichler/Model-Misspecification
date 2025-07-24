@@ -112,8 +112,9 @@ class InContextModel(nn.Module):
 
             if self.loss == 'forward-kl':
                 #pred_params = (means + torch.randn_like(means)) # keep for plotting, but definitely change later
-
-                return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
+                nll = -0.5 * (torch.exp(-logvariances) * (means - gt_params) ** 2 + logvariances + torch.log(2 * torch.pi))
+                #return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
+                return (-nll.sum(dim=-1)).mean(), datasets_in, datasets_in_Y, pred_params, None
 
             # For backward KL, we need to sample parameters using the reparameterization trick to compute the loss
             pred_params = means + torch.randn_like(means) * torch.exp(logvariances)

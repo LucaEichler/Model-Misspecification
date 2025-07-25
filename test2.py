@@ -13,7 +13,7 @@ dy = 1
 dh = 10
 dataset_amount = 10000
 dataset_size = 50
-loss = 'forward-kl'
+loss = 'backward-kl'
 num_iters = 10
 
 model_spec = ('NonLinear', {'dh': dh})
@@ -24,7 +24,7 @@ dataset = datasets.ContextDatasetAlternative(dataset_amount, dataset_size, model
 model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
                   eval_dataset=dataset, lr=1e-4)
 
-for i in range(10):
+for i in range(50):
     gt = NonLinear(dx, dy, dh)
     ds = datasets.PointDataset(dataset_size, gt)
 

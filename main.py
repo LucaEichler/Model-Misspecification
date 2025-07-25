@@ -132,10 +132,10 @@ def train_step(model, optimizer, loss_fns, batch, it):
     return loss
 
 def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
-    X = torch.linspace(-1, 1, 128).unsqueeze(1).to(device)
+    X = torch.linspace(-2, 2, 25).unsqueeze(1).to(device)
     Y = gt(X)
     plt.figure(figsize=(6, 4))
-    plt.plot(X.detach().cpu().numpy(), Y.detach().cpu().numpy())
+    plt.scatter(X.detach().cpu().numpy(), Y.detach().cpu().numpy())
     plt.xlim(-5, 5)
     plt.ylim(-5, 5)
     plt.scatter(X_eval.detach().cpu().numpy(), Y_pred.detach().cpu().numpy(), color='orange')

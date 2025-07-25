@@ -14,7 +14,7 @@ dh = 10
 dataset_amount = 10000
 dataset_size = 50
 loss = 'forward-kl'
-num_iters = 10000
+num_iters = 10
 
 model_spec = ('NonLinear', {'dh': dh})
 
@@ -28,7 +28,7 @@ for i in range(10):
     gt = NonLinear(dx, dy, dh)
     ds = datasets.PointDataset(dataset_size, gt)
 
-    X = torch.randn(128).unsqueeze(1).to(device)
+    X = torch.linspace(-2,2,25).unsqueeze(1).to(device)
 
     Y_pred = model_trained.predict(torch.cat((ds.X, ds.Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 

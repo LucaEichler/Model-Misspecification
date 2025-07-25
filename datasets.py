@@ -79,7 +79,7 @@ class ContextDatasetAlternative(Dataset):
     """
 
     def __init__(self, size, ds_size, model_class, dx, dy, batch_size, noise_std=0.0, **kwargs):
-        self.set = NonLinearRegression(dim=1, min_len=49, max_len=50, min_param_len=10, max_param_len=100, h_dim=100,
+        self.set = NonLinearRegression(dim=1, min_len=49, max_len=50, min_param_len=10, max_param_len=100, h_dim=10,
                                   n_layers=1, act=torch.relu)
         self.batch_size = batch_size
 

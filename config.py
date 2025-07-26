@@ -17,9 +17,11 @@ with open(config_path) as f:
     num_iters_classical = config.get("num_iters_classical")
     num_iters_in_context = config.get("num_iters_in_context")
     batch_size_in_context = config.get("batch_size_in_context")
+    test_tries = config.get("test_tries")
 
     wandb_project_name = config.get("wandb_project_name")
     wandb_enabled = config.get("wandb_enabled")
     wandb_exp_name = config.get("wandb_exp_name")
 
-    learning_rate = config.get("learning_rate")
+    lr_in_context = config.get("lr_in_context")
+    lr_classical = config.get("lr_classical")

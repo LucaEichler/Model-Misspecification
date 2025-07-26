@@ -35,7 +35,7 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size
             model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
             model_trained = train(model, dataset, iterations=num_iters, batch_size=batch_size,
-                  eval_dataset=dataset, lr=config.learning_rate)
+                  eval_dataset=dataset, lr=config.lr_in_context)
             trained_models.append((loss, model_trained))
 
     return trained_models
@@ -49,7 +49,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     linear_2_datasets = []
     nonlinear_datasets = []
 
-    tries = 5 # How many datasets to test on
+    tries = config.test_tries # How many datasets to test on
 
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)
@@ -73,7 +73,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
             for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                           LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                           NonLinearVariational(dx, dy, dh)]:
-                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0], lr=config.learning_rate)
+                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0], lr=config.lr_classical)
                 dataset[2].append(model_trained)
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
@@ -102,12 +102,12 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
     loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
-        """try:
+        try:
             batch = next(data_iter)
         except StopIteration:
             data_iter = iter(dataloader)  # restart for fresh epoch
-            batch = next(data_iter)"""
-        batch = dataset.get_batch()
+            batch = next(data_iter)
+        #batch = dataset.get_batch()
         loss = train_step(model, optimizer, loss_fns, batch, it)
         if config.wandb_enabled:
             wandb.log({"loss": loss.item(), "iteration": it})
@@ -176,6 +176,7 @@ if __name__ == "__main__":
                 Y_pred = torch.randn_like(Y_pred)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
+                eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
 
             for trained_in_context_model in trained_in_context_models:
                 Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))

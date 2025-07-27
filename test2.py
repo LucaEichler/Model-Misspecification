@@ -20,9 +20,10 @@ model_spec = ('NonLinear', {'dh': dh})
 
 model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec[1])
 print(count_parameters(model))
-dataset = datasets.ContextDatasetAlternative(dataset_amount, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])
-model_trained = train(model, dataset, iterations=num_iters, batch_size=100,
-                  eval_dataset=dataset, lr=1e-4)
+dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])
+valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])
+model_trained = train(model, dataset, valset, valfreq=500,  iterations=num_iters, batch_size=100,
+                  lr=1e-4)
 
 for i in range(50):
     gt = NonLinear(dx, dy, dh)

@@ -34,7 +34,8 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec[1])  #TODO: Convert into config
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
-            model_trained = train(model, dataset, iterations=num_iters, batch_size=batch_size,
+            valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, **model_spec[1])
+            model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
                   lr=config.lr_in_context, use_wandb=config.wandb_enabled)
             trained_models.append((loss, model_trained))
 
@@ -54,15 +55,18 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)
         ds_linear = datasets.PointDataset(dataset_size, gt_linear)
-        linear = (gt_linear, ds_linear, [])
+        val_ds_linear = datasets.PointDataset(dataset_size, gt_linear)
+        linear = (gt_linear, ds_linear, [], val_ds_linear)
 
         gt_linear_2 = Linear(dx, dy, order=2)
         ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
-        linear_2 = (gt_linear_2, ds_linear_2, [])
+        val_ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
+        linear_2 = (gt_linear_2, ds_linear_2, [], val_ds_linear_2)
 
         gt_nonlinear = NonLinear(dx, dy, dh)
         ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
-        nonlinear = (gt_nonlinear, ds_nonlinear, [])
+        val_ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
+        nonlinear = (gt_nonlinear, ds_nonlinear, [], val_ds_nonlinear)
 
         linear_datasets.append(linear)
         linear_2_datasets.append(linear_2)
@@ -73,13 +77,13 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
             for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                           LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                           NonLinearVariational(dx, dy, dh)]:
-                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+                model_trained = train(model, dataset[1], valset=dataset[3], valfreq=200, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
                 dataset[2].append(model_trained)
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
-def train(model, dataset, iterations, batch_size, lr = 0.001, use_wandb = False):
+def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, use_wandb = False):
     if use_wandb:
         wandb.init(
             project=config.wandb_project_name,
@@ -95,11 +99,12 @@ def train(model, dataset, iterations, batch_size, lr = 0.001, use_wandb = False)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     data_iter = iter(dataloader)
 
-    early_stopping = EarlyStopping(patience=1000, min_delta=0.)
+    if valset is not None: valloader = DataLoader(valset, batch_size=batch_size, shuffle=False)
+
+    early_stopping = EarlyStopping(patience=15, min_delta=0.)
 
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr) #TODO: learning rate config
-    loss_fns = {"MSE": torch.nn.MSELoss()}
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
         try:
@@ -108,25 +113,32 @@ def train(model, dataset, iterations, batch_size, lr = 0.001, use_wandb = False)
             data_iter = iter(dataloader)  # restart for fresh epoch
             batch = next(data_iter)
         #batch = dataset.get_batch()
-        loss = train_step(model, optimizer, loss_fns, batch, it)
+        loss = train_step(model, optimizer, batch, it)
         if use_wandb:
             wandb.log({"loss": loss.item(), "iteration": it})
         tqdm_batch.set_postfix({"loss": loss.item()})
 
-        """if early_stopping(loss, model):
-            break"""
+        if it % valfreq == 0 and valset is not None:
+            val_loss = 0.
+            for batch in valloader:
+                model.eval()
+                val_loss += model.compute_loss(batch)
+            if early_stopping(val_loss, model):
+                break
+
+
 
     wandb.finish()
 
     return model
 
 
-def train_step(model, optimizer, loss_fns, batch, it):
+def train_step(model, optimizer, batch, it):
     model.train()
     model.zero_grad()
     optimizer.zero_grad()
 
-    loss = model.compute_loss(batch, loss_fns)
+    loss = model.compute_loss(batch)
     loss.backward()
     optimizer.step()
     return loss
@@ -192,7 +204,7 @@ if __name__ == "__main__":
     # average over similar columns to compute mean performance across datasets
     df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
 
-    # Save to disk (choose one or both)
+    # Save to disk
     df_avg.to_csv("experiment1_results.csv", index=False)
 
     print(mse_results)

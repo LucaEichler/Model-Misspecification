@@ -52,11 +52,13 @@ class NonLinear(nn.Module):
 
         return self.linear2(self.relu(self.linear1(x)))
 
-    def compute_loss(self, batch, loss_fns):
+    def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        l2_penalty = weight_decay * torch.sum(self.get_W() ** 2)
-        return loss_fns["MSE"](prediction, Y) + l2_penalty
+        if self.training:
+            l2_penalty = weight_decay * torch.sum(self.get_W() ** 2)
+        else: l2_penalty = 0.
+        return torch.sum((prediction-Y)**2).mean() + l2_penalty
 
     def count_params(self):
         return self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
@@ -69,7 +71,7 @@ class NonLinear(nn.Module):
             self.linear2.bias.flatten()
         ])
 
-    def plot_eval(self, gt_model, loss_fns):
+    def plot_eval(self, gt_model):
         # we need the gt params to plot
         X = torch.linspace(0, 1, 128).unsqueeze(1)
         num_samples = 20
@@ -109,22 +111,20 @@ class NonLinearVariational(NonLinear):
             layer2out = self.linear2(layer1out)
         return layer2out
 
-    def compute_loss(self, batch, loss_fns):
+    def compute_loss(self, batch):
         X, Y = batch
 
         prediction = self(X)
         L = self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
-        kl_div = 0.5 * ((L * (torch.exp(self.logvar) - self.logvar - 1)) +
-                        torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
-                        torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
+        if self.training:
+            kl_div = 0.5 * ((L * (torch.exp(self.logvar) - self.logvar - 1)) +
+                            torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
+                            torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
+        else: kl_div = 0.
         sse = torch.sum((prediction-Y)**2)
         sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
+
         return sse + kl_div
-
-
-
-
-
 
 
 class Linear(nn.Module):
@@ -145,7 +145,7 @@ class Linear(nn.Module):
         batch_size = x.size(0)
 
         # bias
-        ones = torch.ones((batch_size, 1)).to(self.W.device)  # (batch_size, 1)
+        ones = torch.ones((batch_size, 1)).to(self.sample_W().device)  # (batch_size, 1)
 
         # basis function vectors
         phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
@@ -161,6 +161,9 @@ class Linear(nn.Module):
 
         return phi
 
+    def sample_W(self):
+        return self.W
+
     def forward(self, x, W=None):
         """
 
@@ -168,7 +171,7 @@ class Linear(nn.Module):
         :param W: use this if batched multiplication is required
         :return: (batch_size, dy)
         """
-        x = x.to(self.W.device)
+        x = x.to(self.sample_W().device)
         batch_size = x.size(0)
 
         batched = W is not None
@@ -190,7 +193,7 @@ class Linear(nn.Module):
 
         # perform matrix multiplication (multiply the weight matrix W with the
         # basis function vector phi of dimensionality K)
-        return torch.matmul(self.W, phi.T).T  # (batch_size, dy)
+        return torch.matmul(self.sample_W(), phi.T).T  # (batch_size, dy)
 
     def count_params(self):
         return self.W.numel()
@@ -198,13 +201,14 @@ class Linear(nn.Module):
     def get_W(self):
         return self.W.flatten()
 
-    def compute_loss(self, batch, loss_fns):
+    def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        l2_penalty = weight_decay * torch.sum(self.W.flatten() ** 2)
-        return loss_fns["MSE"](prediction, Y) + l2_penalty
+        if self.training: l2_penalty = weight_decay * torch.sum(self.W.flatten() ** 2)
+        else: l2_penalty = 0.
+        return torch.sum((prediction-Y)**2).mean() + l2_penalty
 
-    def plot_eval(self, gt_model, loss_fns):
+    def plot_eval(self, gt_model):
         # we need the gt params to plot
         X = torch.linspace(0, 1, 128).unsqueeze(1)
         num_samples = 20
@@ -233,24 +237,31 @@ class LinearVariational(Linear):
         # now the means and variance become the parameters, and the weights will be sampled during forward
         # TODO check if mus and var should be initialized to zero / one but I think random is correct?
         self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
-        self.logvar = nn.Parameter(torch.tensor(-2.3))
+        self.logvar = nn.Parameter(torch.tensor(-2.3).float())
 
         # delete W (such that it is not a parameter anymore)
         del self.W
 
-    def forward(self, x):
+
+    def sample_W(self):
         # sample W, use "reparameterization trick"
         if self.training:
-            self.W = self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
+            return self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
         else:
-            self.W = self.mus
+            return self.mus
+
+    def forward(self, x):
+
+
         return super().forward(x)
 
-    def compute_loss(self, batch, loss_fns):
+    def compute_loss(self, batch):
         X, Y = batch
 
         prediction = self(X)
-        kl_div = 0.5 * (self.dy * self.K * (torch.exp(self.logvar) - self.logvar - 1) + torch.sum(self.mus ** 2))
+        if self.training:
+            kl_div = 0.5 * (self.dy * self.K * (torch.exp(self.logvar) - self.logvar - 1) + torch.sum(self.mus ** 2))
+        else: kl_div = 0.
         sse = torch.sum((prediction-Y)**2)
         sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
         return sse + kl_div

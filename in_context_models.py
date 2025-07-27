@@ -128,16 +128,16 @@ class InContextModel(nn.Module):
         dOut = self.eval_model.count_params()
         if self.loss in ['forward-kl', 'backward-kl']:
             dOut *=2
-        #self.transformer = Transformer(dx, dy, dOut, dT, num_heads, num_layers)
-        self.transformer = Transformer(dx+dy, dOut, dT, num_heads, num_layers)
+        self.transformer = Transformer2(dx, dy, dOut, dT, num_heads, num_layers)
+        #self.transformer = Transformer(dx+dy, dOut, dT, num_heads, num_layers)
 
     def forward(self, x):
         # Transformer directly maps to parameters
-        return self.transformer(x, None)
+        return self.transformer(x)
 
 
-    def compute_loss(self, batch, loss_fns):
-        loss, *_ = self.compute_forward(batch, loss_fns)
+    def compute_loss(self, batch):
+        loss, *_ = self.compute_forward(batch)
         return loss
 
 
@@ -163,7 +163,7 @@ class InContextModel(nn.Module):
 
         return model_predictions
 
-    def compute_forward(self, batch, loss_fns):
+    def compute_forward(self, batch):
         datasets_in, gt_params = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
         datasets_in_Y = datasets_in[:, :, self.dx:self.dx + self.dy]  # the y values for every point in every dataset

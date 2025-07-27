@@ -120,9 +120,10 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
         if it % valfreq == 0 and valset is not None:
             val_loss = 0.
-            for batch in valloader:
-                model.eval()
-                val_loss += model.compute_loss(batch)
+            with torch.no_grad():
+                for batch in valloader:
+                    model.eval()
+                    val_loss += model.compute_loss(batch)
             if early_stopping(val_loss, model):
                 break
 

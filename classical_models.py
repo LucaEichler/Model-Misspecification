@@ -19,7 +19,7 @@ class NonLinear(nn.Module):
 
         # init weights of network layers from standard normal distribution
         self._init_weights()
-        init.zeros_(self.linear2.bias) #TODO keep or remove?
+        #init.zeros_(self.linear2.bias) #TODO keep or remove?
 
     def _init_weights(self):
         for m in self.modules():
@@ -85,7 +85,7 @@ class NonLinear(nn.Module):
 class NonLinearVariational(NonLinear):
     def __init__(self, dx, dy, dh=100):
         super().__init__(dx, dy, dh)
-        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float()))
+        self.logvar = nn.Parameter(torch.tensor(-2.3))
 
     def forward(self, x, **kwargs):
         # Use reparameterization trick
@@ -102,8 +102,8 @@ class NonLinearVariational(NonLinear):
         eps2b = torch.randn_like(self.linear2.bias)
 
         if self.training:
-            layer1out = self.relu(self.linear1(x) + torch.matmul(x, (eps1w * self.var).T) + eps1b * self.var)
-            layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * self.var).T) + eps2b * self.var
+            layer1out = self.relu(self.linear1(x) + torch.matmul(x, (eps1w * torch.exp(self.logvar)).T) + eps1b * torch.exp(self.logvar))
+            layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * torch.exp(self.logvar)).T) + eps2b * torch.exp(self.logvar)
         else:
             layer1out = self.relu(self.linear1(x))
             layer2out = self.linear2(layer1out)
@@ -114,7 +114,7 @@ class NonLinearVariational(NonLinear):
 
         prediction = self(X)
         L = self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
-        kl_div = 0.5 * ((L * (self.var - torch.log(self.var) - 1)) +
+        kl_div = 0.5 * ((L * (torch.exp(self.logvar) - self.logvar - 1)) +
                         torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
                         torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
         sse = torch.sum((prediction-Y)**2)
@@ -233,7 +233,7 @@ class LinearVariational(Linear):
         # now the means and variance become the parameters, and the weights will be sampled during forward
         # TODO check if mus and var should be initialized to zero / one but I think random is correct?
         self.mus = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
-        self.var = nn.Parameter(torch.abs(torch.from_numpy(sample_normal(1)).float()))
+        self.logvar = nn.Parameter(torch.tensor(-2.3))
 
         # delete W (such that it is not a parameter anymore)
         del self.W
@@ -241,7 +241,7 @@ class LinearVariational(Linear):
     def forward(self, x):
         # sample W, use "reparameterization trick"
         if self.training:
-            self.W = self.mus + self.var * torch.randn_like(self.mus)
+            self.W = self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
         else:
             self.W = self.mus
         return super().forward(x)
@@ -250,7 +250,7 @@ class LinearVariational(Linear):
         X, Y = batch
 
         prediction = self(X)
-        kl_div = 0.5 * (self.dy * self.K * (self.var - torch.log(self.var) - 1) + torch.sum(self.mus ** 2))
+        kl_div = 0.5 * (self.dy * self.K * (torch.exp(self.logvar) - self.logvar - 1) + torch.sum(self.mus ** 2))
         sse = torch.sum((prediction-Y)**2)
         sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
         return sse + kl_div
@@ -260,7 +260,7 @@ class LinearVariational(Linear):
         # perform MC sampling of parameters from posterior distribution
         W = torch.zeros_like(self.mus)
         for i in range(20):
-            W += self.mus + self.var * torch.randn_like(self.mus)
+            W += self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
         W /= 20
         return W
 

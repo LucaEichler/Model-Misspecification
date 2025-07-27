@@ -263,24 +263,3 @@ class LinearVariational(Linear):
             W += self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
         W /= 20
         return W
-
-
-
-
-
-def test_linear():
-    """
-    create a random linear model and plot
-    """
-
-    X = torch.linspace(0, 1, 128).view(128, 1)
-
-    X = torch.cat((X, X), dim=1)
-
-    order_one = Linear(dx=2, dy=1, order=1)
-
-    Y = order_one(X)
-
-    # plots the y-values for the diagonal where (x0=x1)
-    plt.plot(X.detach().numpy(), Y.detach().numpy())
-    plt.show()

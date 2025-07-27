@@ -284,34 +284,3 @@ def test_linear():
     # plots the y-values for the diagonal where (x0=x1)
     plt.plot(X.detach().numpy(), Y.detach().numpy())
     plt.show()
-
-
-def test_linear():
-    """
-    create a random linear model and plot
-    """
-
-    X = torch.linspace(0, 1, 128).view(128, 1)
-
-    X = torch.cat((X, X), dim=1)
-
-    nonlin = NonLinear(dx=2, dy=1, dh=100)
-
-    Y = nonlin(X)
-
-    # plots the y-values for the diagonal where (x0=x1)
-    plt.plot(X.detach().numpy(), Y.detach().numpy())
-    plt.show()
-
-
-def test_sample():
-    from datasets import sample_dataset
-
-    """
-    test the dataset sampling function
-    :return:
-    """
-    model = NonLinear(dx=1, dy=1, dh=100)
-    X, Y = sample_dataset(100, model)
-    plt.scatter(X, Y)
-    plt.show()

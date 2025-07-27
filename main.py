@@ -32,10 +32,10 @@ def train_in_context_models(dx, dy, dh, dataset_amount, dataset_size, batch_size
 
     for model_spec in model_specs:
         for loss in losses:
-            model = in_context_models.InContextModel(dx, dy, 32, 4, 5, model_spec[0], loss, **model_spec[1])
+            model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec[1])  #TODO: Convert into config
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, **model_spec[1])
             model_trained = train(model, dataset, iterations=num_iters, batch_size=batch_size,
-                  eval_dataset=dataset, lr=config.lr_in_context)
+                  lr=config.lr_in_context, use_wandb=config.wandb_enabled)
             trained_models.append((loss, model_trained))
 
     return trained_models
@@ -73,14 +73,14 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
             for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                           LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                           NonLinearVariational(dx, dy, dh)]:
-                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, gt_model=dataset[0], lr=config.lr_classical)
+                model_trained = train(model, dataset[1], iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
                 dataset[2].append(model_trained)
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
-def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=None, plot=True, lr = 0.001):
-    if config.wandb_enabled:
+def train(model, dataset, iterations, batch_size, lr = 0.001, use_wandb = False):
+    if use_wandb:
         wandb.init(
             project=config.wandb_project_name,
             name=config.wandb_exp_name,
@@ -109,12 +109,12 @@ def train(model, dataset, iterations, batch_size, eval_dataset=None, gt_model=No
             batch = next(data_iter)
         #batch = dataset.get_batch()
         loss = train_step(model, optimizer, loss_fns, batch, it)
-        if config.wandb_enabled:
+        if use_wandb:
             wandb.log({"loss": loss.item(), "iteration": it})
         tqdm_batch.set_postfix({"loss": loss.item()})
 
-        if early_stopping(loss, model):
-            break
+        """if early_stopping(loss, model):
+            break"""
 
     wandb.finish()
 

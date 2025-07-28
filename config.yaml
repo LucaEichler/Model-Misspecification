@@ -14,13 +14,13 @@ wandb_exp_name: "Random Experiments"
 device: "cuda"
 noise_std: 0.0
 dh: 10
-test_tries: 10 # How many test datasets to average results over / classical models to train
+test_tries: 2 # How many test datasets to average results over / classical models to train
 
 # ====================================================================================
 # Parameters for Classical Models
 # ====================================================================================
 
-num_iters_classical: 100000
+num_iters_classical: 1
 lr_classical: 0.001
 dataset_size_classical: 50
 weight_decay_classical: 0.00001
@@ -29,9 +29,9 @@ weight_decay_classical: 0.00001
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 100000
+num_iters_in_context: 1
 lr_in_context: 0.0001
 dataset_size_in_context: 50
-dataset_amount: 10000
+dataset_amount: 1
 weight_decay_in_context: 0.00001
 batch_size_in_context: 100

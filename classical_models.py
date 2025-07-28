@@ -268,6 +268,7 @@ class LinearVariational(Linear):
 
     def get_W(self):
         # TODO: this function will just regress towards the mean, so maybe just return the means?
+        return self.mus.flatten()
         # perform MC sampling of parameters from posterior distribution
         W = torch.zeros_like(self.mus)
         for i in range(20):

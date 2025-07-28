@@ -31,6 +31,6 @@ for i in range(50):
 
     X = torch.linspace(-2,2,25).unsqueeze(1).to(device)
 
-    Y_pred = model_trained.predict(torch.cat((ds.X, ds.Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+    Y_pred, means_pred = model_trained.predict(torch.cat((ds.X, ds.Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 
     eval_plot("plot", str(i), gt, X, Y_pred)

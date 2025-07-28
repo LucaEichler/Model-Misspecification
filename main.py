@@ -175,6 +175,7 @@ if __name__ == "__main__":
     X = torch.randn(128).unsqueeze(1).to(device)
 
     mse_results = []
+    mse_params_results = []
     for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
         j=1
         for elem in model_type:
@@ -184,6 +185,14 @@ if __name__ == "__main__":
             Y = gt(X) # ground truth output to compare with
 
             for i in range(0, len(classical_models_trained)):
+
+                # we only can compare the parameters if there is no misspecification
+                if isinstance(classical_models_trained[i], type(gt)):
+                    if not isinstance(classical_models_trained[i], Linear) or classical_models_trained[i].order == gt.order:
+                        mse_params = ((classical_models_trained[i].get_W() - gt.get_W())**2).mean()
+                        mse_params_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(),
+                                            'mse_params': mse_params.item()})
+
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
                 Y_pred = torch.randn_like(Y_pred)
@@ -192,7 +201,13 @@ if __name__ == "__main__":
                 eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
 
             for trained_in_context_model in trained_in_context_models:
-                Y_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+
+                Y_pred, means_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+
+                if isinstance(trained_in_context_model[1].eval_model, type(gt)):
+                    if not isinstance(trained_in_context_model[1].eval_model, Linear) or trained_in_context_model[1].eval_model.order == gt.order:
+                        mse_params = ((means_pred.squeeze(0) - gt.get_W())**2).mean()
+                        mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
 
                 eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
 
@@ -201,12 +216,13 @@ if __name__ == "__main__":
                 mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
             j=j+1
     df = pd.DataFrame(mse_results)
+    df_params = pd.DataFrame(mse_params_results)
 
     # average over similar columns to compute mean performance across datasets
     df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
+    df_avg_params = df_params.groupby(['gt', 'model_name'], as_index=False)['mse_params'].mean()
 
     # Save to disk
     df_avg.to_csv("experiment1_results.csv", index=False)
-
-    print(mse_results)
+    df_avg_params.to_csv("experiment1_params_results.csv", index=False)
 

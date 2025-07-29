@@ -195,7 +195,6 @@ if __name__ == "__main__":
 
                 classical_models_trained[i].eval()
                 Y_pred = classical_models_trained[i](X)
-                Y_pred = torch.randn_like(Y_pred)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
                 eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)

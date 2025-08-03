@@ -1,8 +1,10 @@
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 import torch.optim
 from matplotlib import pyplot as plt
+from scipy.stats import t
 
 import wandb
 from torch.utils.data import DataLoader
@@ -163,7 +165,15 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
     plt.close()
 
 
+def se(x):
+    return x.std(ddof=1) / np.sqrt(len(x))
 
+def ci95(x):
+    n = len(x)
+    std = x.std(ddof=1)
+    se_val = std / np.sqrt(n)
+    t_val = t.ppf(0.975, df=n - 1)
+    return t_val * se_val
 
 if __name__ == "__main__":
 
@@ -218,7 +228,12 @@ if __name__ == "__main__":
     df_params = pd.DataFrame(mse_params_results)
 
     # average over similar columns to compute mean performance across datasets
-    df_avg = df.groupby(['gt', 'model_name'], as_index=False)['mse'].mean()
+    df_avg = df.groupby(['gt', 'model_name'])['mse'].agg(
+        mean_mse='mean',
+        std_mse='std',
+        se=se,
+        ci=ci95
+    ).reset_index()
     df_avg_params = df_params.groupby(['gt', 'model_name'], as_index=False)['mse_params'].mean()
 
     # Save to disk

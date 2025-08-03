@@ -207,7 +207,7 @@ if __name__ == "__main__":
                 Y_pred = classical_models_trained[i](X)
                 mse = torch.mean((Y-Y_pred)**2)
                 mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
-                eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
+                #eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
 
             for trained_in_context_model in trained_in_context_models:
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                         mse_params = ((means_pred.squeeze(0) - gt.get_W())**2).mean()
                         mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
 
-                eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
+                #eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
 
                 mse = torch.mean((Y-Y_pred)**2)
 

@@ -137,7 +137,7 @@ def monomial_indices(d, k):
     return torch.tensor(combos, dtype=torch.long)
 
 class Linear(nn.Module):
-    def __init__(self, dx, dy, order=1, nonlinear_features_enabled = False, feature_sampling_enabled=False):
+    def __init__(self, dx, dy, order=1, nonlinear_features_enabled=False, feature_sampling_enabled=False):
         super().__init__()
         self.nonlinear_features_enabled = nonlinear_features_enabled
         self.feature_sampling_enabled=feature_sampling_enabled
@@ -304,6 +304,13 @@ class Linear(nn.Module):
         #TODO: Implement for variational methods too
         phi = self.get_design_matrix(x)
         return torch.linalg.pinv(phi) @ y
+
+    def closed_form_solution_regularized(self, x, y, lambd):
+        #TODO: Implement for variational methods too
+        #TODO: Find out if intercept should be regularized or not
+        phi = self.get_design_matrix(x)
+        return torch.linalg.solve(lambd*torch.eye(phi.size(-1)) + phi.T @ phi, phi.T @ y)
+
 
     def _get_name(self):
         return super()._get_name()+str(self.order)

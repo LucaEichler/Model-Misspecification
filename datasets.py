@@ -1,26 +1,38 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+
+import config
 from sample import sample_normal
 from classical_models import Linear, NonLinear
 from config import device
 from test4 import NonLinearRegression
 
 
-def sample_dataset(dataset_size, model, noise_std=0.0):
+def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True):
     """
     Sample a dataset of desired size.
     :param model: The model which is applied to generate y values from x values
     """
+    if new_sampling_method:
+        X = []
+        for i in range(model.dx):
+            bounds = torch.empty(2).uniform_(-10, 10)
+            lo, hi = bounds.min(), bounds.max()
 
-    # sample x values
-    X = torch.randn(dataset_size, model.dx).to(device)
+            xi = torch.empty(dataset_size).uniform_(lo, hi).unsqueeze(-1)
+            X.append(xi)
+        X = torch.cat(X, dim=-1)
+    else:
+        # sample x values
+        X = torch.randn(dataset_size, model.dx).to(device)
 
     # compute y values
     Y = model(X)
 
-    # add noise
-    noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
+    noise = torch.normal(mean=0., std=noise_std, size=Y.shape)
+    # add noise (old)
+    #noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
     Y = Y + noise
 
     return X, Y.detach()
@@ -48,23 +60,34 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, compute_closed_form_mle = False, **kwargs):
         self.data = []
         self.params = []
+
+        self.closed_form_mle_params = []
 
         with torch.no_grad():
             # Create 'size' amount of datasets which will make up the big context dataset
             for i in range(size):
                 # Create new model which will be underlying this dataset
-                model = eval(model_class)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
+                model = eval(model_class)(dx, dy, **kwargs).to(device)
                 X, Y = sample_dataset(ds_size, model, noise_std)
                 self.data.append(torch.cat((X, Y), dim=1))
                 self.params.append(model.get_W())
+
+                if compute_closed_form_mle:
+                    self.closed_form_mle_params.append(model.closed_form_solution_regularized(X, Y, config.weight_decay_classical))
 
             # Store the actual datasets...
             self.data = torch.stack(self.data, dim=0)
             # ...and the parameters that were used to generate them
             self.params = torch.stack(self.params, dim=0)
+
+            if compute_closed_form_mle:
+                self.closed_form_mle_params = torch.stack(self.closed_form_mle_params, dim=0)
+
+
+
 
     def __len__(self):
         return self.data.shape[0]

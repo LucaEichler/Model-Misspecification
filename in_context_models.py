@@ -88,9 +88,6 @@ class Transformer(nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, state: torch.Tensor = None, time: torch.Tensor = None):
         """
-       :param x: with shape [S, N, D], S: Max length of Sets in Batch, N: Batch size, D: data dim
-       :param mask: with shape [N, S], binary 0/1: indicates what elements to keep/delete respectively
-       :return: output features with shape [N, D']
        """
 
         emb = self.encoder(x)
@@ -119,7 +116,7 @@ class InContextModel(nn.Module):
 
         # Create model which will be used for evaluation and freeze its parameters
         # With the batched forward, freezing should not be needed, maybe remove later
-        self.eval_model = eval(output_model)(dx, dy, kwargs['order'] if 'order' in kwargs else kwargs['dh']).to(device)
+        self.eval_model = eval(output_model)(dx, dy, **kwargs).to(device)
         for param in self.eval_model.parameters():
             param.requires_grad = False
 

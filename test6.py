@@ -11,6 +11,10 @@ num_iters=10
 dataset_size=1000
 from config import device
 
+model = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=True)
+ds = datasets.PointDataset(dataset_size, model, noise_std=0.5)
+
+
 #seed.set_seed(0)
 for i in range(100):
     model = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=True)

@@ -148,9 +148,11 @@ def train_step(model, optimizer, batch, it):
 
 def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
     X = torch.linspace(-2, 2, 25).unsqueeze(1).to(device)
+    X = torch.cat([X, X, X], dim=-1)
+
     Y = gt(X)
     plt.figure(figsize=(6, 4))
-    plt.scatter(X.detach().cpu().numpy(), Y.detach().cpu().numpy())
+    plt.scatter(X[:,0].detach().cpu().numpy(), Y.detach().cpu().numpy())
     plt.xlim(-5, 5)
     plt.ylim(-5, 5)
     plt.scatter(X_eval.detach().cpu().numpy(), Y_pred.detach().cpu().numpy(), color='orange')

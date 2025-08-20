@@ -60,11 +60,9 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, compute_closed_form_mle = False, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, **kwargs):
         self.data = []
         self.params = []
-
-        self.closed_form_mle_params = []
 
         with torch.no_grad():
             # Create 'size' amount of datasets which will make up the big context dataset
@@ -75,17 +73,11 @@ class ContextDataset(Dataset):
                 self.data.append(torch.cat((X, Y), dim=1))
                 self.params.append(model.get_W())
 
-                if compute_closed_form_mle:
-                    self.closed_form_mle_params.append(model.closed_form_solution_regularized(X, Y, config.weight_decay_classical))
 
             # Store the actual datasets...
             self.data = torch.stack(self.data, dim=0)
             # ...and the parameters that were used to generate them
             self.params = torch.stack(self.params, dim=0)
-
-            if compute_closed_form_mle:
-                self.closed_form_mle_params = torch.stack(self.closed_form_mle_params, dim=0)
-
 
 
 

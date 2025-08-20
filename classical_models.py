@@ -320,6 +320,13 @@ class Linear(nn.Module):
 
 
     def _get_name(self):
+        if self.order == 3:
+            if self.nonlinear_features_enabled:
+                return "Nonlinear"
+            else: return "Polynomial"
+        if self.order == 2:
+            return "Quadratic"
+        else: return "Linear"
         return super()._get_name()+str(self.order)
 
 

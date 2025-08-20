@@ -1,16 +1,22 @@
+import pandas as pd
 import torch
 
 import config
 import datasets
+import main
 from main import train_in_context_models
+
+import classical_models
+from classical_models import Linear
 
 model_specs = [('Linear', {'order': 1, 'feature_sampling_enabled': True}), ('Linear', {'order': 3, 'feature_sampling_enabled': True}),('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True})]
 tries = config.test_tries
 dataset_size = config.dataset_size_classical
 
 trained_in_context_models = train_in_context_models(dx=3, dy=1, dataset_amount=config.dataset_amount,
-                            dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=0.5, compute_closed_form_mle = True,
+                            dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=0.5,
                             model_specs=model_specs)
+results = []
 
 for model_spec in model_specs:
     for i in range(tries):
@@ -23,12 +29,32 @@ for model_spec in model_specs:
 
         X, Y = ds.X, ds.Y
 
-        for in_context_model in trained_in_context_models:
-            # use the model that the in_context_model maps to for computing the mle solution
-            mle_solution = in_context_model.eval_model.closed_form_solution_regularized(X, Y, lambd=config.weight_decay_classical)
-            mle_prediction = in_context_model.eval_model.forward(X, mle_solution)
+        gt_prediction = gt_model(ds.X)
 
+        for loss, in_context_model in trained_in_context_models:
+            # use the model that the in_context_model maps to for computing the mle solution
+            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(X, Y, lambd=config.lambda_mle)
+            closed_form_prediction = in_context_model.eval_model.forward(X.unsqueeze(0), closed_form_params.unsqueeze(0))
             predictions, params = in_context_model.predict(torch.cat((X, Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+
+            results.append({
+                "trial": i,
+                'gt': gt_model._get_name(),
+                'model_name': loss+" "+in_context_model.eval_model._get_name(),
+                "mse_params_closed_form_gradient_descent": torch.mean((closed_form_params-params)**2).item(),
+                "mse_closed_form_gradient_descent": torch.mean((closed_form_prediction-predictions)**2).item(),
+                "mse_closed_form": torch.mean((closed_form_prediction-gt_prediction)**2).item(),
+                "mse_gradient_descent": torch.mean((predictions-gt_prediction)**2).item()
+            })
+
+# Create DataFrame
+df = pd.DataFrame(results)
+
+df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+
+df_avg.to_csv("experiment2_results.csv", index=False)
+
+
 
 
 # 1. calculate mle solution and compare with it -> compute table or so (table maybe later)

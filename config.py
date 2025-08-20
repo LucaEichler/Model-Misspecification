@@ -25,3 +25,7 @@ with open(config_path) as f:
 
     lr_in_context = config.get("lr_in_context")
     lr_classical = config.get("lr_classical")
+
+    lambda_mle = config.get("lambda_mle")
+
+    early_stopping_enabled = config.get("early_stopping_enabled")

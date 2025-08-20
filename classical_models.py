@@ -1,8 +1,12 @@
+import warnings
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
 from torch.nn import init
+
+import config
 from config import dataset_size_classical, device, weight_decay_classical as weight_decay
 from sample import sample_normal
 
@@ -56,7 +60,7 @@ class NonLinear(nn.Module):
         X, Y = batch
         prediction = self(X)
         if self.training:
-            l2_penalty = weight_decay * torch.sum(self.get_W() ** 2)
+            l2_penalty = X.size(0)/config.dataset_size_classical*weight_decay * torch.sum(self.get_W() ** 2)
         else: l2_penalty = 0.
         return torch.sum((prediction-Y)**2).mean() + l2_penalty
 
@@ -283,7 +287,7 @@ class Linear(nn.Module):
     def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        if self.training: l2_penalty = weight_decay * torch.sum(self.W.flatten() ** 2)
+        if self.training: l2_penalty = X.size(0)/config.dataset_size_classical*weight_decay * torch.sum(self.W.flatten() ** 2)
         else: l2_penalty = 0.
         return torch.sum((prediction-Y)**2).mean() + l2_penalty
 
@@ -308,6 +312,9 @@ class Linear(nn.Module):
     def closed_form_solution_regularized(self, x, y, lambd):
         #TODO: Implement for variational methods too
         #TODO: Find out if intercept should be regularized or not
+        if self.feature_sampling_enabled:
+            warnings.warn("trying to compute a closed form solution for a model which"
+                          "has feature sampling enabled - therefore it should be used for sampling data only")
         phi = self.get_design_matrix(x)
         return torch.linalg.solve(lambd*torch.eye(phi.size(-1)) + phi.T @ phi, phi.T @ y)
 

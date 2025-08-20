@@ -11,25 +11,29 @@ wandb_enabled: False
 wandb_project_name: "Model-Misspecification"
 wandb_exp_name: "Random Experiments"
 
+early_stopping_enabled: False
+
 device: "cuda"
 noise_std: 0.
 dh: 10
-test_tries: 100 # How many test datasets to average results over / classical models to train
+test_tries: 1 # How many test datasets to average results over / classical models to train
+
+lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 
 # ====================================================================================
 # Parameters for Classical Models
 # ====================================================================================
 
-num_iters_classical: 100000
-lr_classical: 0.001
+num_iters_classical: 1
+lr_classical: 0.01
 dataset_size_classical: 50
-weight_decay_classical: 0.00001
+weight_decay_classical: 12.
 
 # ====================================================================================
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 100000
+num_iters_in_context: 1
 lr_in_context: 0.0001
 dataset_size_in_context: 50
 dataset_amount: 10000

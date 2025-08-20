@@ -104,7 +104,8 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
     if valset is not None: valloader = DataLoader(valset, batch_size=batch_size, shuffle=False)
 
-    early_stopping = EarlyStopping(patience=15, min_delta=0.)
+    if config.early_stopping_enabled:
+        early_stopping = EarlyStopping(patience=15, min_delta=0.)
 
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr) #TODO: learning rate config
@@ -127,7 +128,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
                 for batch in valloader:
                     model.eval()
                     val_loss += model.compute_loss(batch)
-            if early_stopping(val_loss, model):
+            if config.early_stopping_enabled and early_stopping(val_loss, model):
                 break
 
 

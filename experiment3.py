@@ -31,7 +31,7 @@ for j in range(tries):
         model_trained = train(model, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
         params_grad_descent = model_trained.get_W()
-        params_mle = model.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle*dataset_size)
+        params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device), lambd=config.lambda_mle*dataset_size)
 
         Y_pred = model_trained(test_set.X)
         Y_pred_mle = model_trained.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))

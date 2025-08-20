@@ -315,7 +315,7 @@ class Linear(nn.Module):
         if self.feature_sampling_enabled:
             warnings.warn("trying to compute a closed form solution for a model which"
                           "has feature sampling enabled - therefore it should be used for sampling data only")
-        phi = self.get_design_matrix(x)
+        phi = self.get_design_matrix(x.to(self.device))
         return torch.linalg.solve(lambd*torch.eye(phi.size(-1)) + phi.T @ phi, phi.T @ y)
 
 

@@ -233,7 +233,7 @@ class Linear(nn.Module):
             phi = torch.cat((phi, sin_features), dim=1)
 
             coords = torch.tensor([-7.5, 0., 7.5], device=config.device)
-            a, b, c = torch.meshgrid(coords, coords, coords, indexing='ij', device=config.device)
+            a, b, c = torch.meshgrid(coords, coords, coords, indexing='ij')
             centers = torch.stack([a, b, c], dim=-1).view(-1, 3)
             diff = x[:, None, :] - centers[None, :, :]
             sq_dist = (diff ** 2).sum(dim=2)

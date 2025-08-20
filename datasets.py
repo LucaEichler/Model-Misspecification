@@ -30,7 +30,7 @@ def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True)
     # compute y values
     Y = model(X)
 
-    noise = torch.normal(mean=0., std=noise_std, size=Y.shape)
+    noise = torch.normal(mean=0., std=noise_std, size=Y.shape, device = Y.device)
     # add noise (old)
     #noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
     Y = Y + noise

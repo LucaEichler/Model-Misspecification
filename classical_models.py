@@ -226,7 +226,7 @@ class Linear(nn.Module):
                 phi = torch.cat((phi, outer_products), dim=1)
 
         if self.nonlinear_features_enabled:
-            products = torch.pi / 10 * torch.einsum('bi,j->bij', x, torch.tensor([1,2,3], dtype=x.dtype)).view(batch_size, -1)
+            products = torch.pi / 10 * torch.einsum('bi,j->bij', x, torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
             cos_features = torch.cos(products)
             sin_features = torch.sin(products)
             phi = torch.cat((phi, cos_features), dim=1)

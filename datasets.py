@@ -35,7 +35,7 @@ def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True)
     #noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
     Y = Y + noise
 
-    return X, Y.detach()
+    return X.to(device), Y.detach()
 
 
 class PointDataset(Dataset):

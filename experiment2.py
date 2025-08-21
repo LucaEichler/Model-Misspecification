@@ -47,6 +47,14 @@ for model_spec in model_specs:
                 "mse_gradient_descent": torch.mean((predictions-gt_prediction)**2).item()
             })
 
+            Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+            Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
+            Yplot = gt_model(Xplot)
+
+            Y_predplot, params_predplot = in_context_model.predict(torch.cat((Xplot, Yplot), dim=-1).unsqueeze(0), Xplot.unsqueeze(0))
+
+            main.eval_plot(gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name(), gt_model, Xplot[:,0], Y_predplot.squeeze(0))
+
 # Create DataFrame
 df = pd.DataFrame(results)
 

@@ -33,7 +33,7 @@ class Transformer2(nn.Module):
     def normalize_input(self, x):
         # Normalize each dimension
         x_norm = x.clone()
-        scales = torch.zeros((x.size(1), x.size(2), 2))
+        scales = torch.zeros((x.size(1), x.size(2), 2), device=device)
         for i in range(x.size(-1)):
             x_min = torch.min(x[:, :, i], dim=0, keepdim=True).values
             x_max = torch.max(x[:, :, i], dim=0, keepdim=True).values

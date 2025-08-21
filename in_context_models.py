@@ -9,6 +9,7 @@ from config import device, weight_decay_in_context as weight_decay
 class Transformer2(nn.Module):
     def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
         super().__init__()
+        self.normalize = True
         self.dIn = dx + dy
         self.dOut = dOut
         self.dT = dT
@@ -27,7 +28,26 @@ class Transformer2(nn.Module):
         self.CLS = nn.Parameter(torch.zeros(1, 1, dT))
         nn.init.xavier_uniform_(self.CLS)
 
+    def normalize_input(self, x):
+        # Normalize each dimension
+        x_norm = x.clone()
+        scales = torch.zeros((x.size(1), x.size(2), 2))
+        for i in range(x.size(-1)):
+            x_min = torch.min(x[:, :, i], dim=0, keepdim=True).values
+            x_max = torch.max(x[:, :, i], dim=0, keepdim=True).values
+            x_norm[:, :, i] = (x_norm[:,:,i]-x_min)/(x_max-x_min)
+            scales[:, i, 0]=x_min
+            scales[:, i, 1]=x_max
+        return x_norm, scales
+
+    def renormalize(self, y, scales):
+        # expect (batch_size, dy)
+        return
+
     def forward(self, x):
+        if self.normalize:
+            x, scales = self.normalize_input(x)
+
         # x is of shape (seq_length, batch_size, dx)
         x_emb = self.encoder(x)
 
@@ -41,7 +61,7 @@ class Transformer2(nn.Module):
         tf_out = self.transformer_model(tf_in)
 
         # map to desired output dimension (only take output at CLS token) & return
-        return self.decoder(tf_out[0, :, :])
+        return self.decoder(tf_out[0, :, :]), scales
 
 
 class SinusoidalEmbedding(nn.Module):
@@ -141,7 +161,7 @@ class InContextModel(nn.Module):
     def predict(self, context_datasets, input):
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
-        pred_params = self(context_datasets.transpose(0, 1))
+        pred_params, scales = self(context_datasets.transpose(0, 1))
         datasets_in_X = context_datasets[:, :, 0:self.dx]  # the x values for every point in every dataset
         datasets_in_Y = context_datasets[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
 
@@ -173,7 +193,7 @@ class InContextModel(nn.Module):
 
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
-        pred_params = self(datasets_in.transpose(0, 1))
+        pred_params, scales = self(datasets_in.transpose(0, 1))
 
         if self.loss in ['forward-kl', 'backward-kl']:
             # In this case, the parameters consist of means and variances

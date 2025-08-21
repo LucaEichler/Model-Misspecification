@@ -16,7 +16,7 @@ early_stopping_enabled: True
 device: "cuda"
 noise_std: 0.
 dh: 10
-test_tries: 1 # How many test datasets to average results over / classical models to train
+test_tries: 10 # How many test datasets to average results over / classical models to train
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 
@@ -33,7 +33,7 @@ weight_decay_classical: 12.
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 1
+num_iters_in_context: 1000
 lr_in_context: 0.0001
 dataset_size_in_context: 50
 dataset_amount: 10000

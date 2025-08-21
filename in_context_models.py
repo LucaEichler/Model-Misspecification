@@ -21,7 +21,7 @@ class Transformer2(nn.Module):
 
         # init the actual Transformer
         tsf_layer = nn.TransformerEncoderLayer(d_model=dT, nhead=num_heads, dim_feedforward=4 * dT, batch_first=False)
-        self.transformer_model = nn.TransformerEncoder(tsf_layer, num_layers=num_layers)
+        self.transformer_model = nn.TransformerEncoder(tsf_layer, num_layers=num_layers, enable_nested_tensor=False)
 
         # The CLS token which will contain the result after the transformer is applied
         self.CLS = nn.Parameter(torch.zeros(1, 1, dT))

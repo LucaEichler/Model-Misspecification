@@ -20,6 +20,8 @@ class Transformer2(nn.Module):
         # This layer maps from the Transformer output of dim dT to the desired output dim dT
         self.decoder = nn.Linear(dT, dOut)
 
+        self.scale_encoder = nn.Linear(2, dT)
+
         # init the actual Transformer
         tsf_layer = nn.TransformerEncoderLayer(d_model=dT, nhead=num_heads, dim_feedforward=4 * dT, batch_first=False)
         self.transformer_model = nn.TransformerEncoder(tsf_layer, num_layers=num_layers, enable_nested_tensor=False)
@@ -50,6 +52,9 @@ class Transformer2(nn.Module):
 
         # x is of shape (seq_length, batch_size, dx)
         x_emb = self.encoder(x)
+
+        scales_emb = self.scale_encoder(scales.transpose(0,1))
+        x_emb = torch.cat((x_emb, scales_emb), dim=0)
 
         # repeat the CLS token to match the batch size
         cls = self.CLS.repeat(1, x.shape[1], 1)

@@ -9,7 +9,7 @@ from config import device, weight_decay_in_context as weight_decay
 class Transformer2(nn.Module):
     def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
         super().__init__()
-        self.normalize = True
+        self.normalize = False
         self.dIn = dx + dy
         self.dOut = dOut
         self.dT = dT
@@ -47,14 +47,16 @@ class Transformer2(nn.Module):
         return
 
     def forward(self, x):
+        scales = None
         if self.normalize:
             x, scales = self.normalize_input(x)
 
         # x is of shape (seq_length, batch_size, dx)
         x_emb = self.encoder(x)
 
-        scales_emb = self.scale_encoder(scales.transpose(0,1))
-        x_emb = torch.cat((x_emb, scales_emb), dim=0)
+        if self.normalize:
+            scales_emb = self.scale_encoder(scales.transpose(0,1))
+            x_emb = torch.cat((x_emb, scales_emb), dim=0)
 
         # repeat the CLS token to match the batch size
         cls = self.CLS.repeat(1, x.shape[1], 1)

@@ -18,7 +18,7 @@ num_iters = 10000
 
 model_spec = ('NonLinear', {'dh': dh})
 
-model = in_context_models.InContextModel(dx, dy, 1024, 8, 8, model_spec[0], loss, **model_spec[1])
+model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec[1])
 print(count_parameters(model))
 dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])
 valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, batch_size=100, **model_spec[1])

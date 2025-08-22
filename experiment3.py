@@ -44,13 +44,13 @@ for j in range(tries):
 
 
         # visualize data through one slice
-        X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
-        X = torch.cat([X, X, X], dim=-1)
+        #X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+        #X = torch.cat([X, X, X], dim=-1)
 
-        Y_pred = model_trained(X)
-        Y_pred_mle = model.forward(X.unsqueeze(0), params_mle.unsqueeze(0))
-        eval_plot("", "", gt_model, X[:, 0], Y_pred)
-        eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
+        #Y_pred = model_trained(X)
+        #Y_pred_mle = model.forward(X.unsqueeze(0), params_mle.unsqueeze(0))
+        #eval_plot("", "", gt_model, X[:, 0], Y_pred)
+        #eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
 
         results.append({
             "trial": j,

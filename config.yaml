@@ -25,9 +25,9 @@ lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by d
 # ====================================================================================
 
 num_iters_classical: 1
-lr_classical: 0.01
+lr_classical: 0.001
 dataset_size_classical: 50
-weight_decay_classical: 12.
+weight_decay_classical: 1.2
 
 # ====================================================================================
 # Parameters for In-Context Models

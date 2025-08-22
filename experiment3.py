@@ -9,7 +9,7 @@ import main
 from classical_models import Linear
 from main import train, eval_plot
 
-num_iters=50000
+num_iters=1
 tries = 100
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000
@@ -44,13 +44,13 @@ for j in range(tries):
 
 
         # visualize data through one slice
-        """X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+        X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
         X = torch.cat([X, X, X], dim=-1)
 
         Y_pred = model_trained(X)
         Y_pred_mle = model.forward(X.unsqueeze(0), params_mle.unsqueeze(0))
         eval_plot("", "", gt_model, X[:, 0], Y_pred)
-        eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)"""
+        eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
 
         results.append({
             "trial": j,

@@ -77,10 +77,10 @@ ds_val = ds
 num_iters = 50000
 import config
 
-model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=False, feature_sampling_enabled=True)
-#model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=False)
+model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-plot_3d_surfaces(model1, model2, None, W2=model2.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle))
+plot_3d_surfaces(model2, model2, None, W2=model2.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle))
 
 def plot_predictions(gt_model, model):
     """

@@ -11,7 +11,7 @@ from classical_models import Linear
 
 model_specs = [('Linear', {'order': 1, 'feature_sampling_enabled': True}), ('Linear', {'order': 3, 'feature_sampling_enabled': True}),('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True})]
 tries = config.test_tries
-dataset_size = config.dataset_size_classical
+dataset_size = config.dataset_size_in_context
 
 trained_in_context_models = train_in_context_models(dx=3, dy=1, dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=0.5,

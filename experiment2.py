@@ -9,7 +9,7 @@ from main import train_in_context_models
 import classical_models
 from classical_models import Linear
 
-model_specs = [('Linear', {'order': 1, 'feature_sampling_enabled': True}), ('Linear', {'order': 3, 'feature_sampling_enabled': True}),('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True})]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}), ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}), ('Linear', {'order': 1, 'feature_sampling_enabled': True}),]
 tries = config.test_tries
 dataset_size = config.dataset_size_in_context
 

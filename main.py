@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 import config
 import in_context_models
-import plotting
 from classical_models import Linear, LinearVariational, NonLinear, NonLinearVariational
 import datasets
 from config import dataset_size_classical, device

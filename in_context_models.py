@@ -115,7 +115,7 @@ class Transformer(nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, state: torch.Tensor = None, time: torch.Tensor = None):
         """
-       """
+        """
 
         emb = self.encoder(x)
         if time is not None:

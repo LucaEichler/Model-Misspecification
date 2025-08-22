@@ -284,6 +284,9 @@ class Linear(nn.Module):
     def get_W(self):
         return self.W.flatten()
 
+    def set_W(self, W):
+        self.W = W.view(self.W.shape)
+
     def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)

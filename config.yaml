@@ -36,6 +36,6 @@ weight_decay_classical: 1.2
 num_iters_in_context: 1000
 lr_in_context: 0.00001
 dataset_size_in_context: 64
-dataset_amount: 10
+dataset_amount: 100000
 weight_decay_in_context: 12.0
-batch_size_in_context: 10
+batch_size_in_context: 100

@@ -48,15 +48,9 @@ class Transformer2(nn.Module):
 
     def forward(self, x):
         scales = None
-        if self.normalize:
-            x, scales = self.normalize_input(x)
 
         # x is of shape (seq_length, batch_size, dx)
         x_emb = self.encoder(x)
-
-        if self.normalize:
-            scales_emb = self.scale_encoder(scales.transpose(0,1))
-            x_emb = torch.cat((x_emb, scales_emb), dim=0)
 
         # repeat the CLS token to match the batch size
         cls = self.CLS.repeat(1, x.shape[1], 1)

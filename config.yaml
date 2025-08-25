@@ -11,7 +11,7 @@ wandb_enabled: False
 wandb_project_name: "Model-Misspecification"
 wandb_exp_name: "Random Experiments"
 
-early_stopping_enabled: True
+early_stopping_enabled: False
 
 device: "cuda"
 noise_std: 0.

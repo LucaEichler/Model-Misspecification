@@ -9,7 +9,7 @@ from config import device, weight_decay_in_context as weight_decay
 class Transformer2(nn.Module):
     def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
         super().__init__()
-        self.normalize = False
+        self.normalize = True
         self.dIn = dx + dy
         self.dOut = dOut
         self.dT = dT

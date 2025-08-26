@@ -27,11 +27,11 @@ for j in range(tries):
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
         ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
 
-        model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
+        model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True).to(config.device)
         model_nn = NonLinear(dx=dx, dy=dy, dh=1000)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-        params_mle = model.closed_form_solution_regularized(ds.X.to(model.device), ds.Y.to(model.device), lambd=config.lambda_mle*dataset_size)
+        params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device), lambd=config.lambda_mle*dataset_size)
 
         Y_pred_closed_form = model.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))
         gt_Y = gt_model(test_set.X)

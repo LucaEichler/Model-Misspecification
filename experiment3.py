@@ -9,8 +9,8 @@ import main
 from classical_models import Linear, NonLinear
 from main import train, eval_plot
 
-num_iters=5
-tries = 1
+num_iters=50000
+tries = 50
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000
 results = torch.zeros(sizes)

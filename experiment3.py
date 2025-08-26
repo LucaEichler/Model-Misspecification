@@ -9,7 +9,7 @@ import main
 from classical_models import Linear, NonLinear
 from main import train, eval_plot
 
-num_iters=50000
+num_iters=5
 tries = 1
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000
@@ -31,7 +31,7 @@ for j in range(tries):
         model_nn = NonLinear(dx=dx, dy=dy, dh=1000)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-        params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device), lambd=config.lambda_mle*dataset_size)
+        params_mle = model.closed_form_solution_regularized(ds.X.to(model.device), ds.Y.to(model.device), lambd=config.lambda_mle*dataset_size)
 
         Y_pred_closed_form = model.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))
         gt_Y = gt_model(test_set.X)

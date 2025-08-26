@@ -4,6 +4,7 @@ import torch
 import config
 import datasets
 import main
+import plotting
 from main import train_in_context_models
 
 import classical_models
@@ -40,6 +41,8 @@ for model_spec in model_specs:
             closed_form_prediction = in_context_model.eval_model.forward(X.unsqueeze(0), closed_form_params.unsqueeze(0))
             predictions, params = in_context_model.predict(torch.cat((X, Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 
+            plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
+
             results.append({
                 "trial": i,
                 'gt': gt_model._get_name(),
@@ -57,6 +60,8 @@ for model_spec in model_specs:
             Y_predplot, params_predplot = in_context_model.predict(torch.cat((Xplot, Yplot), dim=-1).unsqueeze(0), Xplot.unsqueeze(0))
 
             main.eval_plot(gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name(), gt_model, Xplot[:,0], Y_predplot.squeeze(0))
+
+
 
 # Create DataFrame
 df = pd.DataFrame(results)

@@ -26,7 +26,7 @@ def normalize_minus1_1(x):
     x_norm = x_norm * 2 - 1
     return x_norm
 
-def plot_3d_surfaces(model1, model2, W1, W2):
+def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
     surfaces = []
     surfaces2 = []
     N = 10
@@ -48,7 +48,10 @@ def plot_3d_surfaces(model1, model2, W1, W2):
         points = torch.stack([X1.reshape(-1), X2.reshape(-1), x3*torch.ones_like(X1).reshape(-1)], dim=-1)
 
 
-        Y = model1(points)
+        if W1 is not None:
+            Y = model1(points.unsqueeze(0), W=W1.unsqueeze(0))
+        else:
+            Y = model1(points)
         if W2 is not None:
             Y2 = model2(points.unsqueeze(0), W=W2.unsqueeze(0))
         else:
@@ -67,20 +70,19 @@ def plot_3d_surfaces(model1, model2, W1, W2):
     frames = [go.Frame(data=[surfaces[k], surfaces2[k]]) for k in range(N)]
     fig.frames = frames
     fig.update_layout(updatemenus=[dict(type="buttons",buttons=[dict(label="Play",method="animate",args=[None, {"frame": {"duration": 200, "redraw": True},"fromcurrent": True, "transition": {"duration": 0}}])])])
-
-    fig.show()
+    fig.write_html("./plots/"+model_name+" - "+ds_name+".html")
 
 
 model1 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=True)
 ds = datasets.PointDataset(100, model1, 0.5)
 ds_val = ds
-num_iters = 50000
+num_iters = 1
 import config
 
-model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=False)
-model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+#model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=False)
+#model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-plot_3d_surfaces(model2, model2, None, W2=model2.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle))
+#plot_3d_surfaces(model2, model2, None, W2=model2.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle))
 
 def plot_predictions(gt_model, model):
     """

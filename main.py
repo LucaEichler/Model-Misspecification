@@ -108,7 +108,8 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         early_stopping = EarlyStopping(patience=15, min_delta=0.)
 
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr) #TODO: learning rate config
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5,
+) #TODO: learning rate config
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
         try:

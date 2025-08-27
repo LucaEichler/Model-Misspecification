@@ -16,7 +16,7 @@ early_stopping_enabled: False
 device: "cuda"
 noise_std: 0.
 dh: 10
-test_tries: 10 # How many test datasets to average results over / classical models to train
+test_trials: 10 # How many test datasets to average results over / classical models to train
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 

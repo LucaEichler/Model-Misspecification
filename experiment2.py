@@ -14,7 +14,7 @@ dx=3
 dy=1
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}), ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}), ('Linear', {'order': 1, 'feature_sampling_enabled': True}),]
-tries = config.test_tries
+tries = config.test_trials
 dataset_size = config.dataset_size_in_context
 
 trained_in_context_models = train_in_context_models(dx=dx, dy=dy, dataset_amount=config.dataset_amount,

@@ -53,7 +53,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     linear_2_datasets = []
     nonlinear_datasets = []
 
-    tries = config.test_tries # How many datasets to test on
+    tries = config.test_trials # How many datasets to test on
 
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)

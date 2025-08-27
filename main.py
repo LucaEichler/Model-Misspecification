@@ -5,6 +5,7 @@ import pandas as pd
 import torch.optim
 from matplotlib import pyplot as plt
 from scipy.stats import t
+from torch.optim.lr_scheduler import LambdaLR
 
 import wandb
 from torch.utils.data import DataLoader
@@ -17,6 +18,16 @@ from classical_models import Linear, LinearVariational, NonLinear, NonLinearVari
 import datasets
 from config import dataset_size_classical, device
 from early_stopping import EarlyStopping
+
+def lr_lambda(current_step: int):
+    warmup_steps = 1000
+    if current_step < warmup_steps:
+        # Linear warmup
+        return float(current_step) / float(max(1, warmup_steps))
+    # Cosine decay after warmup
+    progress = float(current_step - warmup_steps) / float(max(1, config.num_iters_in_context - warmup_steps))
+    return 0.5 * (1.0 + torch.cos(torch.pi * progress))
+
 
 
 def count_parameters(model):
@@ -108,8 +119,9 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         early_stopping = EarlyStopping(patience=15, min_delta=0.)
 
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5,
-) #TODO: learning rate config
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
+    scheduler=LambdaLR(optimizer, lr_lambda)
+
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:
         try:
@@ -118,7 +130,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
             data_iter = iter(dataloader)  # restart for fresh epoch
             batch = next(data_iter)
         #batch = dataset.get_batch()
-        loss = train_step(model, optimizer, batch, it)
+        loss = train_step(model, optimizer, batch, scheduler, it)
         if use_wandb:
             wandb.log({"loss": loss.item(), "iteration": it})
         tqdm_batch.set_postfix({"loss": loss.item()})
@@ -139,7 +151,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
     return model
 
 
-def train_step(model, optimizer, batch, it):
+def train_step(model, optimizer, batch, scheduler, it):
     model.train()
     model.zero_grad()
     optimizer.zero_grad()
@@ -147,6 +159,7 @@ def train_step(model, optimizer, batch, it):
     loss = model.compute_loss(batch)
     loss.backward()
     optimizer.step()
+    scheduler.step()
     return loss
 
 def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):

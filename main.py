@@ -20,13 +20,13 @@ from config import dataset_size_classical, device
 from early_stopping import EarlyStopping
 
 def lr_lambda(current_step: int):
-    warmup_steps = 1000
+    warmup_steps = 500
     if current_step < warmup_steps:
         # Linear warmup
         return float(current_step) / float(max(1, warmup_steps))
     # Cosine decay after warmup
     progress = float(current_step - warmup_steps) / float(max(1, config.num_iters_in_context - warmup_steps))
-    return 0.5 * (1.0 + torch.cos(torch.pi * progress))
+    return 0.5 * (1.0 + torch.cos(torch.tensor(torch.pi * progress)))
 
 
 
@@ -120,7 +120,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
-    scheduler=LambdaLR(optimizer, lr_lambda)
+    scheduler=LambdaLR(optimizer, lr_lambda) # TODO disable scheduler for non amortized models
 
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     for it in tqdm_batch:

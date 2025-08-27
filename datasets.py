@@ -19,8 +19,6 @@ def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True)
         for i in range(model.dx):
             bounds = torch.empty(2).uniform_(-10, 10)
             lo, hi = bounds.min(), bounds.max()
-            lo = -10.
-            hi = 10.
 
             xi = torch.empty(dataset_size).uniform_(lo, hi).unsqueeze(-1)
             X.append(xi)

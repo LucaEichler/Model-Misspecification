@@ -7,9 +7,9 @@
 # General Parameters
 # ====================================================================================
 
-wandb_enabled: False
+wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Random Experiments"
+wandb_exp_name: "Experiment 2"
 
 early_stopping_enabled: False
 

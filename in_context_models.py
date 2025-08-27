@@ -6,6 +6,29 @@ from classical_models import Linear, NonLinear
 from config import device, weight_decay_in_context as weight_decay
 
 
+def renormalize(y_norm, scales):
+    # expect (batch_size, dy)
+    y_min = scales[:, -1, 0][:, None, None]
+    y_max = scales[:, -1, 1][:, None, None]
+    y_renorm = (y_norm * (y_max-y_min))+y_min
+    return y_renorm
+
+def normalize_input(x):
+    # Normalize each dimension
+    x_norm = x.clone()
+    scales = torch.zeros((x.size(1), x.size(2), 2), device=device)
+    for i in range(x.size(-1)):  # potentially range(x.size(-1)-1) so that y is not normalized
+        x_min = torch.min(x[:, :, i], dim=0, keepdim=True).values
+        x_max = torch.max(x[:, :, i], dim=0, keepdim=True).values
+        x_norm[:, :, i] = (x[:,:,i]-x_min)/(x_max-x_min)
+        scales[:, i, 0]=x_min
+        scales[:, i, 1]=x_max
+    return x_norm, scales
+
+
+
+
+
 class Transformer2(nn.Module):
     def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
         super().__init__()
@@ -30,24 +53,11 @@ class Transformer2(nn.Module):
         self.CLS = nn.Parameter(torch.zeros(1, 1, dT))
         nn.init.xavier_uniform_(self.CLS)
 
-    def normalize_input(self, x):
-        # Normalize each dimension
-        x_norm = x.clone()
-        scales = torch.zeros((x.size(1), x.size(2), 2), device=device)
-        for i in range(x.size(-1)):
-            x_min = torch.min(x[:, :, i], dim=0, keepdim=True).values
-            x_max = torch.max(x[:, :, i], dim=0, keepdim=True).values
-            x_norm[:, :, i] = (x_norm[:,:,i]-x_min)/(x_max-x_min)
-            scales[:, i, 0]=x_min
-            scales[:, i, 1]=x_max
-        return x_norm, scales
-
-    def renormalize(self, y, scales):
-        # expect (batch_size, dy)
-        return
-
     def forward(self, x):
         scales = None
+        if self.normalize:
+            x_norm, scales = normalize_input(x)
+            x = x_norm
 
         # x is of shape (seq_length, batch_size, dx)
         x_emb = self.encoder(x)
@@ -134,6 +144,7 @@ class InContextModel(nn.Module):
         self.dx = dx
         self.dy = dy
         self.loss = loss
+        self.normalize = True
 
         # Create model which will be used for evaluation and freeze its parameters
         # With the batched forward, freezing should not be needed, maybe remove later
@@ -186,7 +197,12 @@ class InContextModel(nn.Module):
     def compute_forward(self, batch):
         datasets_in, gt_params = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
+        if self.normalize:
+            datasets_in_X, scales = normalize_input(datasets_in_X.transpose(0,1))
+            datasets_in_X = datasets_in_X.transpose(0,1)
         datasets_in_Y = datasets_in[:, :, self.dx:self.dx + self.dy]  # the y values for every point in every dataset
+
+
 
         """for i in range(datasets_in_X.size(0)):
             plt.scatter(datasets_in_X[i, :, :].detach().numpy(), datasets_in_Y[i, :, :].detach().numpy())
@@ -215,6 +231,9 @@ class InContextModel(nn.Module):
 
         # Compute the model predictions. For the point estimate, pred_
         model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)
+
+        if self.normalize:
+            model_predictions = renormalize(model_predictions, scales)
 
         mse = torch.mean(torch.sum((datasets_in_Y - model_predictions) ** 2, dim=1), dim=0)
 

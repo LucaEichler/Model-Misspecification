@@ -184,7 +184,7 @@ class Linear(nn.Module):
                         o = 1
                         self.active_feature_indices = torch.multinomial(idist_nonlin, L_nonlin, replacement=False) + 20
 
-                Ldist_poly = 3**(-1/4)**torch.arange(0, 20 + o)  # We keep out the rest of the distribution as torch.multinomial does not need normalized distributions
+                Ldist_poly = (3**(-1/4))**torch.arange(0, 20 + o)  # We keep out the rest of the distribution as torch.multinomial does not need normalized distributions
                 L_poly = torch.multinomial(Ldist_poly, 1, replacement=False).item() + 1 - o
 
                 idist_poly = torch.empty(20)

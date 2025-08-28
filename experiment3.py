@@ -8,8 +8,11 @@ import datasets
 import main
 from classical_models import Linear, NonLinear
 from main import train, eval_plot
+import seed
 
-num_iters=50000
+seed.set_seed(0)
+
+num_iters=1
 tries = 50
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000
@@ -21,6 +24,9 @@ results = []
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
+    x=  torch.arange(3).unsqueeze(0)+1.
+    y = gt_model(x)
+    print(y)
     test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
     for i in range(sizes):
         dataset_size = 16*2**i

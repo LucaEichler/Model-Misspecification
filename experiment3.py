@@ -12,7 +12,7 @@ import seed
 
 seed.set_seed(0)
 
-num_iters=1
+num_iters=100000
 tries = 1
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000

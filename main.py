@@ -119,7 +119,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         early_stopping = EarlyStopping(patience=15, min_delta=0.)
 
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5) #TODO weight decay config
     scheduler=LambdaLR(optimizer, lr_lambda) # TODO disable scheduler for non amortized models
 
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)

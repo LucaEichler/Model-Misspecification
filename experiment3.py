@@ -1,7 +1,10 @@
 # In this experiment, we want to find out
 # how many data points the model needs to reach optimal performance
+import math
+
 import pandas as pd
 import torch
+import scipy.stats as stats
 
 import config
 import datasets
@@ -12,11 +15,10 @@ import seed
 
 seed.set_seed(0)
 
-num_iters=100000
-tries = 1
+num_iters=10
+tries = 10
 sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
-results = torch.zeros(sizes)
 dx=3
 dy=1
 
@@ -47,7 +49,8 @@ for j in range(tries):
         mse_nn[j, i] = torch.mean((Y_pred_nn-gt_Y)**2)
         mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
 
-
+        print(torch.mean((Y_pred_nn-gt_Y)**2))
+        print(torch.mean((Y_pred_closed_form-gt_Y)**2))
         # visualize data through one slice
         #X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
         #X = torch.cat([X, X, X], dim=-1)
@@ -57,11 +60,30 @@ for j in range(tries):
         #eval_plot("", "", gt_model, X[:, 0], Y_pred)
         #eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
 
+def mean_and_ci(values, confidence=0.95):  #TODO: put in utility file and merge with main.py standard error computation
+    """
+    values: 1D tensor of shape [num_trials]
+    returns mean, err (so you can plot mean ± err)
+    """
+    n = values.numel()
+    mean = values.mean()
+    std = values.std(unbiased=True)
+    sem = std / math.sqrt(n)
+
+    # t-distribution multiplier
+    h = stats.t.ppf((1 + confidence) / 2., n - 1) * sem
+
+    return mean.item(), h.item()
+
 for i in range(len(sizes)):
+    mean_nn, error_nn = mean_and_ci(mse_nn[:, i], confidence=0.95)
+    mean_cf, error_cf = mean_and_ci(mse_closed_form[:, i], confidence=0.95)
     results.append({
         "dataset_size": sizes[i],
-        "mse_grad_descent": torch.mean(mse_nn, dim=0)[i].item(),
-        "mse_closed_form": torch.mean(mse_closed_form, dim=0)[i].item()
+        "mse_nn": mean_nn,
+        "mse_cf": mean_cf,
+        "nn_err": error_nn,
+        "cf_err": error_cf
     })
 
 # Create DataFrame

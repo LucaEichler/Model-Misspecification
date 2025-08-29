@@ -25,6 +25,15 @@ def normalize_input(x):
         scales[:, i, 1]=x_max
     return x_norm, scales
 
+def normalize_to_scales(x, scales):
+    x_norm = x.clone()
+    for i in range(x.size(-1)):
+        x_min = scales[:, i, 0]
+        x_max = scales[:, i, 1]
+        x_norm[:, :, i] = (x[:,:,i]-x_min)/(x_max-x_min)
+
+    return x_norm
+
 
 
 
@@ -174,8 +183,8 @@ class InContextModel(nn.Module):
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
         pred_params, scales = self(context_datasets.transpose(0, 1))
-        datasets_in_X = context_datasets[:, :, 0:self.dx]  # the x values for every point in every dataset
-        datasets_in_Y = context_datasets[:, :, self.dy:self.dx + self.dy]  # the y values for every point in every dataset
+        input = normalize_to_scales(input, scales)
+
 
         if self.loss in ['forward-kl', 'backward-kl']:
             # In this case, the parameters consist of means and variances
@@ -192,7 +201,7 @@ class InContextModel(nn.Module):
             model_predictions /= float(eval_samples)
         else: model_predictions = self.eval_model.forward(input, pred_params)  # (batch_size, dataset_size, dy)
 
-        return model_predictions, pred_params
+        return renormalize(model_predictions, scales), pred_params
 
     def compute_forward(self, batch):
         datasets_in, gt_params = batch

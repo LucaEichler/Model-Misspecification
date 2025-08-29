@@ -24,8 +24,8 @@ dy=1
 
 results = []
 
-mse_nn = torch.empty((tries, 4))
-mse_closed_form = torch.empty((tries, 4))
+mse_nn = torch.empty((tries, len(sizes)))
+mse_closed_form = torch.empty((tries, len(sizes)))
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)

@@ -13,7 +13,7 @@ import seed
 seed.set_seed(0)
 
 num_iters=1
-tries = 50
+tries = 1
 sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 test_set_size=10000
 results = torch.zeros(sizes)
@@ -28,8 +28,8 @@ for j in range(tries):
     y = gt_model(x)
     print(y)
     test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
-    for i in range(sizes):
-        dataset_size = 16*2**i
+    for i in [1000, 5000, 20000, 50000]:
+        dataset_size = i #16*2**i
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
         ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
 

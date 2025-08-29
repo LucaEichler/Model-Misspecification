@@ -44,7 +44,6 @@ for j in range(tries):
 
         Y_pred_nn = model_nn(test_set.X)
 
-        mse_closed_form_gradient_descent = torch.mean((Y_pred_closed_form-Y_pred_nn)**2)
         mse_grad_descent = torch.mean((Y_pred_nn-gt_Y)**2)
         mse_closed_form = torch.mean((Y_pred_closed_form-gt_Y)**2)
 
@@ -61,7 +60,6 @@ for j in range(tries):
         results.append({
             "trial": j,
             "dataset_size": dataset_size,
-            "mse_closed_form_gradient_descent": mse_closed_form_gradient_descent.item(),
             "mse_grad_descent": mse_grad_descent.item(),
             "mse_closed_form": mse_closed_form.item()
         })

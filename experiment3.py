@@ -24,9 +24,6 @@ results = []
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
-    x=  torch.arange(3).unsqueeze(0)+1.
-    y = gt_model(x)
-    print(y)
     test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
     for i in [1000, 5000, 20000, 50000]:
         dataset_size = i #16*2**i

@@ -14,7 +14,7 @@ seed.set_seed(0)
 
 num_iters=100000
 tries = 1
-sizes = 10  # [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
 results = torch.zeros(sizes)
 dx=3
@@ -22,11 +22,14 @@ dy=1
 
 results = []
 
+mse_nn = torch.empty((tries, 4))
+mse_closed_form = torch.empty((tries, 4))
+
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
     test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
-    for i in [1000, 5000, 20000, 50000]:
-        dataset_size = i #16*2**i
+    for i in range(len(sizes)):
+        dataset_size = sizes[i] #16*2**i
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
         ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
 
@@ -41,8 +44,8 @@ for j in range(tries):
 
         Y_pred_nn = model_nn(test_set.X)
 
-        mse_grad_descent = torch.mean((Y_pred_nn-gt_Y)**2)
-        mse_closed_form = torch.mean((Y_pred_closed_form-gt_Y)**2)
+        mse_nn[j, i] = torch.mean((Y_pred_nn-gt_Y)**2)
+        mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
 
 
         # visualize data through one slice
@@ -54,18 +57,15 @@ for j in range(tries):
         #eval_plot("", "", gt_model, X[:, 0], Y_pred)
         #eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
 
-        results.append({
-            "trial": j,
-            "dataset_size": dataset_size,
-            "mse_grad_descent": mse_grad_descent.item(),
-            "mse_closed_form": mse_closed_form.item()
-        })
+for i in range(len(sizes)):
+    results.append({
+        "dataset_size": sizes[i],
+        "mse_grad_descent": torch.mean(mse_nn, dim=0)[i].item(),
+        "mse_closed_form": torch.mean(mse_closed_form, dim=0)[i].item()
+    })
 
 # Create DataFrame
 df = pd.DataFrame(results)
 
-# Average across tries
-df_mean = df.groupby("dataset_size").mean().reset_index()
-
-df_mean.to_csv("experiment3_results.csv", index=False)
+df.to_csv("experiment3_results.csv", index=False)
 

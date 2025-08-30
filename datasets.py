@@ -9,7 +9,7 @@ from config import device
 from test4 import NonLinearRegression
 
 
-def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=False):
+def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True):
     """
     Sample a dataset of desired size.
     :param model: The model which is applied to generate y values from x values

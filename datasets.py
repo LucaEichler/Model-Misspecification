@@ -60,15 +60,19 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, params_list=None, **kwargs):
         self.data = []
         self.params = []
 
+        W = None
         with torch.no_grad():
             # Create 'size' amount of datasets which will make up the big context dataset
             for i in range(size):
+                if params_list is not None: # add params to kwargs
+                    W = params_list[i, :]
+
                 # Create new model which will be underlying this dataset
-                model = eval(model_class)(dx, dy, **kwargs).to(device)
+                model = eval(model_class)(dx, dy, init_W=W, **kwargs).to(device)
                 X, Y = sample_dataset(ds_size, model, noise_std)
                 self.data.append(torch.cat((X, Y), dim=1))
                 self.params.append(model.get_W())

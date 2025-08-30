@@ -12,7 +12,7 @@ from sample import sample_normal
 
 
 class NonLinear(nn.Module):
-    def __init__(self, dx, dy, dh):
+    def __init__(self, dx, dy, dh, init_W=None):
         super().__init__()
         self.dx = dx
         self.dy = dy
@@ -21,9 +21,12 @@ class NonLinear(nn.Module):
         self.linear2 = nn.Linear(dh, dy)
         self.relu = nn.ReLU()
 
-        # init weights of network layers from standard normal distribution
-        self._init_weights()
-        #init.zeros_(self.linear2.bias) #TODO keep or remove?
+        if init_W is None:
+            # init weights of network layers from standard normal distribution
+            self._init_weights()
+        else:
+            # set weights to input parameter vector
+            self.set_W(init_W)
 
     def _init_weights(self):
         for m in self.modules():
@@ -59,7 +62,7 @@ class NonLinear(nn.Module):
     def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        if self.training:
+        if self.training: # TODO remove l2_penalty (currently only set to 0)
             l2_penalty = X.size(0)/config.dataset_size_classical*weight_decay * torch.sum(self.get_W() ** 2)
         else: l2_penalty = 0.
         return torch.sum((prediction-Y)**2).mean() + l2_penalty
@@ -74,6 +77,24 @@ class NonLinear(nn.Module):
             self.linear2.weight.flatten(),
             self.linear2.bias.flatten()
         ])
+
+    def set_W(self, W):  # TODO check correctness
+        w1_dim = self.dh * self.dx
+        b1_dim = self.dh
+        w2_dim = self.dy * self.dh
+        b2_dim = self.dy
+
+        w1 = W[:w1_dim].view(self.dh, self.dx)
+        b1 = W[w1_dim:w1_dim + b1_dim].view(self.dh)
+        w2 = W[w1_dim + b1_dim:w1_dim + b1_dim + w2_dim].view(self.dy, self.dh)
+        b2 = W[-b2_dim:].view(self.dy)
+
+        with torch.no_grad():
+            self.linear1.weight.copy_(w1)
+            self.linear1.bias.copy_(b1)
+            self.linear2.weight.copy_(w2)
+            self.linear2.bias.copy_(b2)
+
 
     def plot_eval(self, gt_model):
         # we need the gt params to plot
@@ -141,7 +162,7 @@ def monomial_indices(d, k):
     return torch.tensor(combos, dtype=torch.long)
 
 class Linear(nn.Module):
-    def __init__(self, dx, dy, order=1, nonlinear_features_enabled=False, feature_sampling_enabled=False):
+    def __init__(self, dx, dy, order=1, init_W=None, nonlinear_features_enabled=False, feature_sampling_enabled=False):
         super().__init__()
         self.nonlinear_features_enabled = nonlinear_features_enabled
         self.feature_sampling_enabled=feature_sampling_enabled
@@ -157,8 +178,11 @@ class Linear(nn.Module):
             self.K += dx*2*3
             self.K += 27
 
-        # initialize parameters according to N(0,I)
-        self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        if init_W is None:
+            # initialize parameters according to N(0,I)
+            self.W = nn.Parameter(torch.from_numpy(sample_normal((self.dy, self.K))).float())
+        else:
+            self.set_W(init_W)
 
         # In case of data generation, sample sparse weights for features, set rest to zero
         if self.feature_sampling_enabled:

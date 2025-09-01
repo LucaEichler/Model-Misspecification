@@ -33,9 +33,12 @@ for model_spec in model_specs:
 
         X, Y = ds.X, ds.Y
 
+        ds_predictions = datasets.PointDataset(dataset_size, gt_model)
+
         gt_prediction = gt_model(ds.X)
 
         for loss, in_context_model in trained_in_context_models:
+            # TODO test set different than input set
             # use the model that the in_context_model maps to for computing the mle solution
             closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(X, Y, lambd=config.lambda_mle)
             closed_form_prediction = in_context_model.eval_model.forward(X.unsqueeze(0), closed_form_params.unsqueeze(0))

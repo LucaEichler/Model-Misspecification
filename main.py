@@ -102,7 +102,6 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
                 "model_name": model._get_name(),
                 "iterations": iterations,
                 "batch_size": batch_size,
-
             }
         )
     model.to(device)
@@ -112,7 +111,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
     if valset is not None: valloader = DataLoader(valset, batch_size=batch_size, shuffle=False)
 
     if config.early_stopping_enabled:
-        early_stopping = EarlyStopping(patience=15, min_delta=0.)
+        early_stopping = EarlyStopping(patience=config.early_stopping_patience, min_delta=config.early_stopping_delta)
 
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5) #TODO weight decay config

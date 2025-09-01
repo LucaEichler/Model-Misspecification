@@ -29,3 +29,5 @@ with open(config_path) as f:
     lambda_mle = config.get("lambda_mle")
 
     early_stopping_enabled = config.get("early_stopping_enabled")
+    early_stopping_patience = config.get("early_stopping_patience")
+    early_stopping_delta = config.get("early_stopping_delta")

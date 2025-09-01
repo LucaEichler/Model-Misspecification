@@ -116,9 +116,10 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5) #TODO weight decay config
     # TODO disable scheduler for non amortized models
-    warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
-    # cosine decay after warmup: we'll step this manually after warmup period
-    cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
+    if isinstance(model, in_context_models.InContextModel):
+        warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
+        # cosine decay after warmup: we'll step this manually after warmup period
+        cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
 
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     i = 0

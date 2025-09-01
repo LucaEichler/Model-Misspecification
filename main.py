@@ -32,7 +32,7 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs):
+def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs):
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
     losses = ['mle-dataset']
 
@@ -43,8 +43,8 @@ def train_in_context_models(dx, dy, dataset_amount, dataset_size, batch_size, nu
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
-            dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, noise_std, **model_spec[1])
-            valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, noise_std, **model_spec[1])
+            dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+            valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
                   lr=config.lr_in_context, use_wandb=config.wandb_enabled)
             trained_models.append((loss, model_trained))
@@ -203,7 +203,7 @@ def ci95(x):
 if __name__ == "__main__":
 
     linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
-    trained_in_context_models = train_in_context_models(dx=1, dy=1, dataset_amount=config.dataset_amount,
+    trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=config.noise_std, compute_closed_form_mle=False, model_specs=[('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': config.dh})])
 
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?

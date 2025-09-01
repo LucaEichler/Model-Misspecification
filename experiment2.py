@@ -17,7 +17,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}), ('Lin
 tries = config.test_trials
 dataset_size = config.dataset_size_in_context
 
-trained_in_context_models = train_in_context_models(dx=dx, dy=dy, dataset_amount=config.dataset_amount,
+trained_in_context_models = train_in_context_models(dx=dx, dy=dy, x_dist='uniform', dataset_amount=config.dataset_amount,
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=0.5,
                             model_specs=model_specs)
 results = []
@@ -27,22 +27,21 @@ for model_spec in model_specs:
 
         # create new ground truth model for evaluation
         gt_model = eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])
+        bounds = datasets.gen_uniform_bounds(dx)
 
-        # sample a test set from ground truth
-        ds = datasets.PointDataset(dataset_size, gt_model)
+        # sample an input dataset from ground truth
+        ds_input = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
-        X, Y = ds.X, ds.Y
+        # test dataset, noise disabled to get target function values
+        ds_test = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
 
-        ds_predictions = datasets.PointDataset(dataset_size, gt_model)
-
-        gt_prediction = gt_model(ds.X)
 
         for loss, in_context_model in trained_in_context_models:
             # TODO test set different than input set
             # use the model that the in_context_model maps to for computing the mle solution
-            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(X, Y, lambd=config.lambda_mle)
-            closed_form_prediction = in_context_model.eval_model.forward(X.unsqueeze(0), closed_form_params.unsqueeze(0))
-            predictions, params = in_context_model.predict(torch.cat((X, Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+            closed_form_prediction = in_context_model.eval_model.forward(ds_test.X.unsqueeze(0), closed_form_params.unsqueeze(0))
+            predictions, params = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
 
             plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
 
@@ -52,8 +51,8 @@ for model_spec in model_specs:
                 'model_name': loss+" "+in_context_model.eval_model._get_name(),
                 "mse_params_closed_form_gradient_descent": torch.mean((closed_form_params-params)**2).item(),
                 "mse_closed_form_gradient_descent": torch.mean((closed_form_prediction-predictions)**2).item(),
-                "mse_closed_form": torch.mean((closed_form_prediction-gt_prediction)**2).item(),
-                "mse_gradient_descent": torch.mean((predictions-gt_prediction)**2).item()
+                "mse_closed_form": torch.mean((closed_form_prediction-ds_test.Y)**2).item(),
+                "mse_gradient_descent": torch.mean((predictions-ds_test.Y)**2).item()
             })
 
             Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)

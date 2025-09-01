@@ -73,10 +73,6 @@ def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
     fig.write_html("./plots/"+model_name+" - "+ds_name+".html")
 
 
-model1 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=True)
-ds = datasets.PointDataset(100, model1, 0.5)
-ds_val = ds
-num_iters = 1
 import config
 
 #model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=False)

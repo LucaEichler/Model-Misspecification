@@ -1,5 +1,3 @@
-# In this experiment, we want to find out
-# how many data points the model needs to reach optimal performance
 import math
 
 import pandas as pd
@@ -21,6 +19,7 @@ sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
 dx=3
 dy=1
+dh=100
 
 results = []
 
@@ -29,14 +28,18 @@ mse_closed_form = torch.empty((tries, len(sizes)))
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
-    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
+    bounds = datasets.gen_uniform_bounds(dx)
+    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
     for i in range(len(sizes)):
         dataset_size = sizes[i] #16*2**i
-        ds = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
-        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
+        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
+        # 'dummy' model for computing closed form solution
         model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True).to(config.device)
-        model_nn = NonLinear(dx=dx, dy=dy, dh=100)
+
+        # train neural network
+        model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
         params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device), lambd=config.lambda_mle*dataset_size)

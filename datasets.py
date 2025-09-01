@@ -9,23 +9,38 @@ from config import device
 from test4 import NonLinearRegression
 
 
-def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True):
+def gen_uniform_bounds(dim, min=-10., max=10.):
+    bounds = torch.empty((dim,2))
+    for i in range(dim):
+        lohi = torch.empty(2).uniform_(-10, 10)
+        lo, hi = lohi.min(), lohi.max()
+        bounds[i,0], bounds[i,1] = lo, hi
+    return bounds
+
+
+def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
     """
-    Sample a dataset of desired size.
+    Sample a dataset.
     :param model: The model which is applied to generate y values from x values
+    :param x_dist: distribution of input points, can be either gaussian or uniform
+    :param bounds: if using uniform mode, specific bounds for each dimension may be provided here
+    :return tuple of X and Y of dataset points
     """
-    if new_sampling_method:
+    if x_dist == "uniform":
         X = []
+        if bounds is None:
+            bounds = gen_uniform_bounds(model.dx)
         for i in range(model.dx):
-            bounds = torch.empty(2).uniform_(-10, 10)
-            lo, hi = bounds.min(), bounds.max()
+            lo, hi = bounds[i, 0], bounds[i, 1]
 
             xi = torch.empty(dataset_size).uniform_(lo, hi).unsqueeze(-1)
             X.append(xi)
         X = torch.cat(X, dim=-1)
-    else:
+    elif x_dist == "gaussian":
         # sample x values
         X = torch.randn(dataset_size, model.dx).to(device)
+    else:
+        raise ValueError(f"Wrong argument: {x_dist}. Expected 'uniform' or 'gaussian'.")
 
     # compute y values
     Y = model(X)
@@ -37,15 +52,14 @@ def sample_dataset(dataset_size, model, noise_std=0.0, new_sampling_method=True)
 
     return X.to(device), Y.detach()
 
-
 class PointDataset(Dataset):
     """
     Dataset class used for classical models, elements of the datasets are (x,y) pairs
     """
 
-    def __init__(self, size, model, noise_std=0.0):
+    def __init__(self, size, model, x_dist, noise_std=0.0, bounds=None):
         self.model = model.to(device)
-        self.X, self.Y = sample_dataset(size, self.model, noise_std)
+        self.X, self.Y = sample_dataset(size, self.model, x_dist, noise_std, bounds)
 
     def __len__(self):
         return self.X.shape[0]
@@ -60,7 +74,7 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, noise_std=0.0, params_list=None, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, x_dist, noise_std=0.0, params_list=None, **kwargs):
         self.data = []
         self.params = []
 
@@ -73,7 +87,7 @@ class ContextDataset(Dataset):
 
                 # Create new model which will be underlying this dataset
                 model = eval(model_class)(dx, dy, init_W=W, **kwargs).to(device)
-                X, Y = sample_dataset(ds_size, model, noise_std)
+                X, Y = sample_dataset(ds_size, model, x_dist, noise_std)
                 self.data.append(torch.cat((X, Y), dim=1))
                 self.params.append(model.get_W())
 

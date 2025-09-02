@@ -48,7 +48,7 @@ if mode == "generate":
         mse_nn = torch.mean((Y_pred_nn - gt_Y) ** 2)
 
         # reject parameters with bad approximation
-        if mse_nn < -10.: #0.1:
+        if mse_nn < 0.1:
             W = model_nn.get_W()
             with open(filename, "a") as f:
                 f.write(",".join(map(str, W.tolist())) + "\n")

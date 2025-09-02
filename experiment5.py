@@ -26,7 +26,6 @@ num_iters = 1000000
 gen_iterations = 1000 # how many parameters to generate
 validation_frequency = 1000
 
-seed.set_seed(1)
 
 if mode == "generate":
     for i in range(gen_iterations):

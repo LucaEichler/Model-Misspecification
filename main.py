@@ -157,9 +157,6 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
             avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
-                for i, lr in enumerate(plateau_scheduler.get_last_lr()):
-                    print(f"Current LR for group {i}: {lr}")
-
             if config.early_stopping_enabled and early_stopping(val_loss, avg_val_loss):
                 break
 

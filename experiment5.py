@@ -23,7 +23,7 @@ filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the
 test_set_size = 10000
 dataset_size = 50000
 num_iters = 1000000
-gen_iterations = 1000 # how many datasets to generate
+gen_iterations = 1000 # how many parameters to generate
 validation_frequency = 1000
 
 seed.set_seed(1)

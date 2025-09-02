@@ -37,13 +37,12 @@ for model_spec in model_specs:
 
 
         for loss, in_context_model in trained_in_context_models:
-            # TODO test set different than input set
             # use the model that the in_context_model maps to for computing the mle solution
             closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
             closed_form_prediction = in_context_model.eval_model.forward(ds_test.X.unsqueeze(0), closed_form_params.unsqueeze(0))
             predictions, params = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
 
-            plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
+            #plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
 
             results.append({
                 "trial": i,

@@ -34,7 +34,6 @@ def count_parameters(model):
 
 def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs):
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
-    losses = ['mle-dataset']
 
     trained_models = []
 

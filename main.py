@@ -121,6 +121,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
         # cosine decay after warmup: we'll step this manually after warmup period
         cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
+        plateau_scheduler = None
     else:
         plateau_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, threshold=1e-4)
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)

@@ -7,7 +7,7 @@
 # General Parameters
 # ====================================================================================
 
-wandb_enabled: False
+wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
 wandb_exp_name: "Experiment 2"
 
@@ -24,7 +24,7 @@ lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by d
 # ====================================================================================
 
 num_iters_classical: 1
-lr_classical: 0.001
+lr_classical: 0.01
 dataset_size_classical: 50
 weight_decay_classical: 0.0 # use optimizer-based weight decay instead
 
@@ -45,4 +45,4 @@ batch_size_in_context: 100
 
 early_stopping_enabled: True
 early_stopping_patience: 10.
-early_stopping_delta: 0.00005
+early_stopping_delta: 0.01

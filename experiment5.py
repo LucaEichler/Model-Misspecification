@@ -6,33 +6,40 @@ import torch
 import config
 import datasets
 import in_context_models
+import seed
 from classical_models import Linear, NonLinear
 from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "train" # "train"
+mode = "generate" # "train"
 dx = 3
 dy = 1
 dh = 100
 
-filename = "./exp5_data.csv" # file to save training data in TODO add file ending
+filename = "./exp5_data.csv" # file to save training data in
+filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
 
 test_set_size = 10000
 dataset_size = 50000
-num_iters = 1 #100000
-gen_iterations = 10 # how many datasets to generate
+num_iters = 1000000
+gen_iterations = 1000 # how many datasets to generate
+validation_frequency = 1000
+
+seed.set_seed(1)
 
 if mode == "generate":
     for i in range(gen_iterations):
         gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
-        test_set = datasets.PointDataset(size=test_set_size, model=gt_model, noise_std=0.5)
+        bounds = datasets.gen_uniform_bounds(dx)
 
-        ds = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
-        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, noise_std=0.5)
+        test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
-        model_nn = NonLinear(dx=dx, dy=dy, dh=100)
-        model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100,
+        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+
+        model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
+        model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters, batch_size=100,
                          lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
         gt_Y = gt_model(test_set.X)
@@ -41,10 +48,12 @@ if mode == "generate":
         mse_nn = torch.mean((Y_pred_nn - gt_Y) ** 2)
 
         # reject parameters with bad approximation
-        if mse_nn < 0.1:
+        if mse_nn < -10.: #0.1:
             W = model_nn.get_W()
             with open(filename, "a") as f:
                 f.write(",".join(map(str, W.tolist())) + "\n")
+            with open(filename_error, "a") as f:
+                f.write((str(mse_nn.item())) + "\n")
 
 
 elif mode == "train":

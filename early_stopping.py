@@ -15,8 +15,8 @@ class EarlyStopping:
         self.counter = 0
         self.best_loss = np.inf
 
-    def __call__(self, val_loss, model):
-        if val_loss < self.best_loss - self.min_delta:
+    def __call__(self, val_loss, avg_val_loss):
+        if val_loss < self.best_loss - (self.min_delta*avg_val_loss):
             self.best_loss = val_loss
             self.counter = 0
             #torch.save(model.state_dict(), self.save_path)

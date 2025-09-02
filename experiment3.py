@@ -17,6 +17,7 @@ num_iters=1000000
 tries = 10
 sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
+val_set_size=5000
 dx=3
 dy=1
 dh=100
@@ -33,7 +34,7 @@ for j in range(tries):
     for i in range(len(sizes)):
         dataset_size = sizes[i] #16*2**i
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
-        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+        ds_val = datasets.PointDataset(size=val_set_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
         # 'dummy' model for computing closed form solution
         model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True).to(config.device)

@@ -35,6 +35,13 @@ class NonLinear(nn.Module):
                 if m.bias is not None:
                     init.normal_(m.bias, mean=0.0, std=1.0)
 
+    def _init_weights_training(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                nn.init.kaiming_uniform_(layer.weight, nonlinearity='relu')
+                nn.init.zeros_(layer.bias)
+
+
     def forward(self, x, W=None):
         # TODO: Check for correctness
         batched = W is not None

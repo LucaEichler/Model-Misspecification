@@ -1,11 +1,11 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import numpy as np
 import pandas as pd
 import torch.optim
 from matplotlib import pyplot as plt
 from scipy.stats import t
-from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
+from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR, ReduceLROnPlateau
 
 import wandb
 from torch.utils.data import DataLoader
@@ -93,6 +93,8 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 
 def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, use_wandb = False):
+    if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
+
     if use_wandb:
         wandb.init(
             project=config.wandb_project_name,
@@ -119,9 +121,11 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
         # cosine decay after warmup: we'll step this manually after warmup period
         cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
-
+    else:
+        plateau_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, threshold=1e-4)
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     i = 0
+    recent_val_losses = deque(maxlen=5)  # keep rolling average of last 5 validation losses
     for it in tqdm_batch:
         try:
             batch = next(data_iter)
@@ -142,11 +146,21 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
         if it % valfreq == 0 and valset is not None:
             val_loss = 0.
+
             with torch.no_grad():
                 for batch in valloader:
                     model.eval()
                     val_loss += model.compute_loss(batch)
-            if config.early_stopping_enabled and early_stopping(val_loss, model):
+                if use_wandb:
+                    wandb.log({"val_loss": val_loss.item(), "iteration": it})
+            recent_val_losses.append(val_loss)
+            avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
+            if plateau_scheduler is not None:
+                plateau_scheduler.step(val_loss)
+                for i, lr in enumerate(plateau_scheduler.get_last_lr()):
+                    print(f"Current LR for group {i}: {lr}")
+
+            if config.early_stopping_enabled and early_stopping(val_loss, avg_val_loss):
                 break
 
 

@@ -192,7 +192,7 @@ class InContextModel(nn.Module):
 
             pred_params = means
 
-            eval_samples = 25
+            eval_samples = 25 #TODO in config
 
             model_predictions = torch.zeros_like(self.eval_model.forward(input, means))
             for i in range(eval_samples):

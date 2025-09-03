@@ -233,7 +233,7 @@ class Linear(nn.Module):
                 self.W[:, inactive_indices] = 0.
 
 
-    def get_design_matrix(self, x):
+    def get_design_matrix(self, x, scales=None):
         batch_size = x.size(0)
 
         # bias
@@ -266,10 +266,14 @@ class Linear(nn.Module):
             coords = torch.tensor([-7.5, 0., 7.5], device=config.device)
             a, b, c = torch.meshgrid(coords, coords, coords, indexing='ij')
             centers = torch.stack([a, b, c], dim=-1).view(-1, 3)
+            s=torch.ones_like(centers)*4.5
+            if scales is not None:  # In case of normalization, we are given scales to recalculate the centers and sizes
+                centers = (centers-scales[:,0])/(scales[:, 1]-scales[:,0])
+                s = s/(scales[:, 1]-scales[:,0])
+
             diff = x[:, None, :] - centers[None, :, :]
-            sq_dist = (diff ** 2).sum(dim=2)
-            s=4.5
-            gauss_features = torch.exp(-(sq_dist / (2*s**2)))
+            sq_dist = ((diff ** 2)/(2*s[None, :, :]**2)).sum(dim=2)
+            gauss_features = torch.exp(-sq_dist)
 
             phi = torch.cat((phi, gauss_features), dim=1)
 

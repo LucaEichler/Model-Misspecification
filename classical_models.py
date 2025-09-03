@@ -257,7 +257,8 @@ class Linear(nn.Module):
                 phi = torch.cat((phi, outer_products), dim=1)
 
         if self.nonlinear_features_enabled:
-            products = torch.pi / 10 * torch.einsum('bi,j->bij', x, torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
+            # note that the next line also accounts for the normalized case
+            products = torch.pi / 10 * torch.einsum('bi,j->bij', x if scales is None else x*(scales[:,:,1]-scales[:,:,0])+scales[:,:,0], torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
             cos_features = torch.cos(products)
             sin_features = torch.sin(products)
             phi = torch.cat((phi, cos_features), dim=1)
@@ -268,11 +269,11 @@ class Linear(nn.Module):
             centers = torch.stack([a, b, c], dim=-1).view(-1, 3)
             s=torch.ones_like(centers)*4.5
             if scales is not None:  # In case of normalization, we are given scales to recalculate the centers and sizes
-                centers = (centers-scales[:,0])/(scales[:, 1]-scales[:,0])
-                s = s/(scales[:, 1]-scales[:,0])
+                centers = (centers[None, :, :]-scales[:,:,0])/(scales[:,:, 1]-scales[:,:,0])
+                s = s[None, :, :]/(scales[:,:, 1]-scales[:,:,0])
 
-            diff = x[:, None, :] - centers[None, :, :]
-            sq_dist = ((diff ** 2)/(2*s[None, :, :]**2)).sum(dim=2)
+            diff = x[:, None, :] - centers
+            sq_dist = ((diff ** 2)/(2*s**2)).sum(dim=2)
             gauss_features = torch.exp(-sq_dist)
 
             phi = torch.cat((phi, gauss_features), dim=1)

@@ -296,7 +296,7 @@ class InContextModel(nn.Module):
         pred_params, scales = self(datasets_in.transpose(0, 1))
 
         if self.normalize and self.loss in ['forward-kl', 'mle-params']:
-            gt_params = normalize_params(scales)
+            gt_params = normalize_params(gt_params, scales)
 
         if self.loss in ['forward-kl', 'backward-kl']:
             # In this case, the parameters consist of means and variances

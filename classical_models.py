@@ -283,7 +283,7 @@ class Linear(nn.Module):
     def sample_W(self):
         return self.W
 
-    def forward(self, x, W=None):
+    def forward(self, x, W=None, scales=None):
         """
 
         :param x: (batch_size, dx) or (num_datasets, num_points, dx) if batched
@@ -301,7 +301,7 @@ class Linear(nn.Module):
             x = x.view(batch_size, x.size(2))
 
 
-        phi = self.get_design_matrix(x)
+        phi = self.get_design_matrix(x, scales)
 
         # bias
         ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)

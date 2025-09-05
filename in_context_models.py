@@ -1,8 +1,10 @@
+from itertools import combinations_with_replacement
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
-from classical_models import Linear, NonLinear
+from classical_models import Linear, NonLinear, monomial_indices
 from config import device, weight_decay_in_context as weight_decay
 
 
@@ -24,6 +26,73 @@ def normalize_input(x):
         scales[:, i, 0]=x_min
         scales[:, i, 1]=x_max
     return x_norm, scales
+
+def normalize_params(params, scales):  # params of shape (batch_size, num_params) #TODO as params are usually sparse, only compute contributions for active terms
+    normalized_params = torch.zeros_like(params, dtype=params.dtype)
+    y_min, y_max = scales[:, 0, -1], scales[:, 1, -1]
+    x_min, x_max = scales[:, 0, 0:3], scales[:, 1, 0:3]
+
+    normalized_params[:, 0] += y_min #TODO check if this correct normalization or we need /ymax-ymin
+
+    # linear terms
+    normalized_params[:, 1:4]+=params[:, 1:4]*(x_max-x_min)
+    normalized_params[:, 0] += torch.sum(params[:, 1:4]*x_min, dim=-1)
+
+    if params.size(-1) > 4:
+
+        # quadratic terms
+        outer_products = torch.einsum('ni,nj->nij', (x_max-x_min), (x_max-x_min))  # (batch size, dx, dx)
+        idxs = torch.triu_indices(outer_products.size(1), outer_products.size(2))
+        outer_products = outer_products[:, idxs[0],
+                         idxs[1]]
+
+        normalized_params[:, 4:10] += params[:, 4:10]*outer_products
+
+        combos = list(combinations_with_replacement(range(3), 2))
+        for i in range(len(combos)):
+            normalized_params[:, combos[i][0]+1] += params[:, 4 + i] * (x_max - x_min)[:, combos[i][0]] * x_min[:, combos[i][1]]
+            normalized_params[:, combos[i][1]+1] += params[:, 4 + i] * (x_max - x_min)[:, combos[i][1]] * x_min[:, combos[i][0]]
+
+        # bias for quadratic terms
+        outer_products = torch.einsum('ni,nj->nij', x_min, x_min)  # (batch size, dx, dx)
+        idxs = torch.triu_indices(outer_products.size(1), outer_products.size(2))
+        outer_products = outer_products[:, idxs[0],
+                         idxs[1]]
+
+        normalized_params[:, 0] += torch.sum(params[:, 4:10]*outer_products, dim=-1)
+
+        # cubic terms
+        outer_products = torch.einsum('ni,nj,nk->nijk', (x_max-x_min), (x_max-x_min), (x_max-x_min))  # (batch size, dx, dx)
+        idxs = monomial_indices(3, 3)
+        outer_products = outer_products[:, idxs[:, 0], idxs[:, 1], idxs[:, 2]]
+
+        normalized_params[:, 10:20] += params[:, 10:20]*outer_products
+
+        # lookup table #TODO global variable
+        quad_combos = list(combinations_with_replacement(range(3), 2))
+        quad_index = {c: i for i, c in enumerate(quad_combos)}
+
+        combos = list(combinations_with_replacement(range(3), 3))
+        for i in range(len(combos)): #TODO add simple check if param is active before calculation
+            (a,b,c) = combos[i]
+
+            normalized_params[:, 4+quad_index[tuple(sorted((a, b)))]] += params[:, 10+i]*(x_max-x_min)[:, a]*(x_max-x_min)[:, b]*x_min[:, c]
+            normalized_params[:, 4+quad_index[tuple(sorted((a, c)))]] += params[:, 10+i]*(x_max-x_min)[:, a]*(x_max-x_min)[:, c]*x_min[:, b]
+            normalized_params[:, 4+quad_index[tuple(sorted((b, c)))]] += params[:, 10+i]*(x_max-x_min)[:, b]*(x_max-x_min)[:, c]*x_min[:, a]
+
+            normalized_params[:, 1+a] += params[:, 10+i]*(x_max-x_min)[:, a]*x_min[:,b]*x_min[:,c]
+            normalized_params[:, 1+b] += params[:, 10+i]*(x_max-x_min)[:, b]*x_min[:,a]*x_min[:,c]
+            normalized_params[:, 1+c] += params[:, 10+i]*(x_max-x_min)[:, c]*x_min[:,b]*x_min[:,a]
+
+        outer_products = torch.einsum('ni,nj,nk->nijk', x_min, x_min, x_min)  # (batch size, dx, dx)
+        outer_products = outer_products[:, idxs[:, 0], idxs[:, 1], idxs[:, 2]]
+
+        normalized_params[:,0]+=torch.sum(params[:, 10:20]*outer_products, dim=-1)
+
+    normalized_params /= (y_max - y_min).unsqueeze(-1)
+
+    return normalized_params
+
 
 def normalize_to_scales(x, scales):
     x_norm = x.clone()

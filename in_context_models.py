@@ -295,6 +295,9 @@ class InContextModel(nn.Module):
         # Transpose such that sequence length is first dimension
         pred_params, scales = self(datasets_in.transpose(0, 1))
 
+        if self.normalize and self.loss in ['forward-kl', 'mle-params']:
+            gt_params = normalize_params(scales)
+
         if self.loss in ['forward-kl', 'backward-kl']:
             # In this case, the parameters consist of means and variances
             means, logvariances = torch.chunk(pred_params, 2, dim=-1)

@@ -29,10 +29,12 @@ def normalize_input(x):
 
 def normalize_params(params, scales):  # params of shape (batch_size, num_params) #TODO as params are usually sparse, only compute contributions for active terms
     normalized_params = torch.zeros_like(params, dtype=params.dtype)
-    y_min, y_max = scales[:, 0, -1], scales[:, 1, -1]
-    x_min, x_max = scales[:, 0, 0:3], scales[:, 1, 0:3]
+    y_min, y_max = scales[:, -1, 0], scales[:, -1, 1]
+    x_min, x_max = scales[:, 0:3, 0], scales[:, 0:3, 1]
 
-    normalized_params[:, 0] += y_min #TODO check if this correct normalization or we need /ymax-ymin
+    normalized_params[:, 0] += params[:, 0] # add original bias
+
+    normalized_params[:, 0] -= y_min #TODO check if this correct normalization or we need /ymax-ymin
 
     # linear terms
     normalized_params[:, 1:4]+=params[:, 1:4]*(x_max-x_min)
@@ -88,6 +90,9 @@ def normalize_params(params, scales):  # params of shape (batch_size, num_params
         outer_products = outer_products[:, idxs[:, 0], idxs[:, 1], idxs[:, 2]]
 
         normalized_params[:,0]+=torch.sum(params[:, 10:20]*outer_products, dim=-1)
+
+    if params.size(-1) > 20:
+        normalized_params[:,20:65] = params[:,20:65]
 
     normalized_params /= (y_max - y_min).unsqueeze(-1)
 

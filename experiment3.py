@@ -14,7 +14,7 @@ import seed
 seed.set_seed(0)
 
 num_iters=1000000
-tries = 100
+tries = 10
 sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
 val_set_size=5000
@@ -39,18 +39,23 @@ for j in range(tries):
         # 'dummy' model for computing closed form solution
         model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True).to(config.device)
 
-        # train neural network
-        model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
-        model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
-
-        params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device), lambd=config.lambda_mle*dataset_size)
+        params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device),
+                                                            lambd=config.lambda_mle * dataset_size)
 
         Y_pred_closed_form = model.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))
         gt_Y = gt_model(test_set.X)
 
-        Y_pred_nn = model_nn(test_set.X)
+        mses = torch.empty(3)
+        for k in range(3):  # 3 initialization tries
+            # train neural network
+            model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
+            model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-        mse_nn[j, i] = torch.mean((Y_pred_nn-gt_Y)**2)
+            Y_pred_nn = model_nn(test_set.X)
+
+            mses[k] = torch.mean((Y_pred_nn - gt_Y) ** 2)
+
+        mse_nn[j, i] = torch.median(mses)
         mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
 
         print(torch.mean((Y_pred_nn-gt_Y)**2))

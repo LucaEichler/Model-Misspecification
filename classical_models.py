@@ -69,10 +69,7 @@ class NonLinear(nn.Module):
     def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        if self.training: # TODO remove l2_penalty (currently only set to 0)
-            l2_penalty = X.size(0)/config.dataset_size_classical*weight_decay * torch.sum(self.get_W() ** 2)
-        else: l2_penalty = 0.
-        return torch.sum((prediction-Y)**2).mean() + l2_penalty
+        return torch.sum((prediction-Y)**2).mean()
 
     def count_params(self):
         return self.dx * self.dh + self.dh + self.dh * self.dy + self.dy

@@ -313,7 +313,7 @@ class InContextModel(nn.Module):
                 return sum.mean(), datasets_in, datasets_in_Y, pred_params, None
 
             # For backward KL, we need to sample parameters using the reparameterization trick to compute the loss
-            pred_params = means + torch.randn_like(means) * torch.exp(logvariances)
+            pred_params = means + torch.randn_like(means) * torch.exp(logvariances) #TODO check sampling correct, chatgpt says a factor of 0.5 is needed
 
         # Compute the model predictions. For the point estimate, pred_
         model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)

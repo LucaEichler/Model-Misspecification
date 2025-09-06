@@ -115,18 +115,20 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
         early_stopping = EarlyStopping(patience=config.early_stopping_patience, min_delta=config.early_stopping_delta)
 
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5) #TODO weight decay config
     # TODO disable scheduler for non amortized models
     if isinstance(model, in_context_models.InContextModel):
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
         # cosine decay after warmup: we'll step this manually after warmup period
         cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
         plateau_scheduler = None
     else:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=config.weight_decay_classical)  # TODO weight decay config
         plateau_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, threshold=1e-4)
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     i = 0
-    recent_val_losses = deque(maxlen=5)  # keep rolling average of last 5 validation losses
+    #recent_val_losses = deque(maxlen=5)  # keep rolling average of last 5 validation losses
+    best_val_loss = torch.tensor(float('inf'))
     for it in tqdm_batch:
         try:
             batch = next(data_iter)
@@ -154,11 +156,12 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
                     val_loss += model.compute_loss(batch)
                 if use_wandb:
                     wandb.log({"val_loss": val_loss.item(), "iteration": it})
-            recent_val_losses.append(val_loss)
-            avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
+            #recent_val_losses.append(val_loss)
+            #avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
+            if val_loss < best_val_loss: best_val_loss = val_loss
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
-            if config.early_stopping_enabled and early_stopping(val_loss, avg_val_loss):
+            if config.early_stopping_enabled and early_stopping(val_loss, best_val_loss):
                 break
 
 
@@ -197,6 +200,21 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
     plt.text(0.99, 0.99, model_name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='right')
     plt.savefig("./plots/"+model_name+" - "+ds_name)
+    plt.show()
+    plt.close()
+
+def eval_plot_nn(name, Y_gt, X_eval, Y_pred):
+
+    plt.figure(figsize=(6, 4))
+    plt.scatter(X_eval.detach().cpu().numpy(), Y_gt.detach().cpu().numpy())
+    plt.xlim(0, 1)
+    plt.ylim(Y_gt.min().item(), Y_gt.max().item())
+    plt.scatter(X_eval.detach().cpu().numpy(), Y_pred.detach().cpu().numpy(), color='orange')
+    plt.text(0.01, 0.99, "nn- "+name, transform=plt.gca().transAxes,
+            fontsize=12, verticalalignment='top', horizontalalignment='left')
+
+
+    plt.savefig("./plots/"+"nn - "+name)
     plt.show()
     plt.close()
 

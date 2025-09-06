@@ -13,14 +13,15 @@ import seed
 
 seed.set_seed(0)
 
-num_iters=1000000
+num_iters=10 #1000000
 tries = 10
 sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
-val_set_size=5000
+val_set_size=10000
 dx=3
 dy=1
 dh=100
+validation_frequency = 1000
 
 results = []
 
@@ -45,29 +46,43 @@ for j in range(tries):
         Y_pred_closed_form = model.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))
         gt_Y = gt_model(test_set.X)
 
-        mses = torch.empty(3)
-        for k in range(3):  # 3 initialization tries
-            # train neural network
-            model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
-            model_nn = train(model_nn, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+        # train neural network
+        model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
+        model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters,
+                         batch_size=100,
+                         lr=config.lr_classical, use_wandb=config.wandb_enabled)
 
-            Y_pred_nn = model_nn(test_set.X)
+        Y_pred_nn = model_nn(test_set.X)
 
-            mses[k] = torch.mean((Y_pred_nn - gt_Y) ** 2)
+        mse_rel = torch.sum((Y_pred_nn - gt_Y) ** 2)/torch.sum(gt_Y ** 2)
 
-        mse_nn[j, i] = torch.median(mses)
-        mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
+        mse_nn[j, i] = mse_rel
+        mse_closed_form[j, i] = torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2)
 
-        print(torch.mean((Y_pred_nn-gt_Y)**2))
-        print(torch.mean((Y_pred_closed_form-gt_Y)**2))
-        # visualize data through one slice
-        #X = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
-        #X = torch.cat([X, X, X], dim=-1)
+        print(torch.sum((Y_pred_nn-gt_Y)**2)/torch.sum(gt_Y ** 2))
+        print(torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2))
 
-        #Y_pred = model_trained(X)
-        #Y_pred_mle = model.forward(X.unsqueeze(0), params_mle.unsqueeze(0))
-        #eval_plot("", "", gt_model, X[:, 0], Y_pred)
-        #eval_plot("", "", gt_model, X[:, 0], Y_pred_mle)
+        # visualize in normalized space
+
+        start = bounds[:, 0]
+        end = bounds[:, 1]
+
+        # number of points along the line
+        N = 25
+
+        # linear interpolation for each coordinate
+        t = torch.linspace(0., 1., N).unsqueeze(1)  # shape (N,1)
+        line = start + t * (end - start)  # shape (N,3)
+
+        Xplot = line.to(config.device)
+        Yplot = gt_model(Xplot)
+
+        Y_predplot = model_nn(Xplot)
+
+        main.eval_plot_nn(str(i), Yplot, t, Y_predplot)
+
+        #Y_pred_mle = model.forward(Xplot.unsqueeze(0), params_mle.unsqueeze(0))
+
 
 def mean_and_ci(values, confidence=0.95):  #TODO: put in utility file and merge with main.py standard error computation
     """

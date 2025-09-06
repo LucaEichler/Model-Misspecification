@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset
 
 import config
+import in_context_models
 from sample import sample_normal
 from classical_models import Linear, NonLinear
 from config import device
@@ -66,6 +67,23 @@ class PointDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.X[idx], self.Y[idx]
+
+def min_max_norm(input):
+    min, max = torch.min(input, dim=0, keepdim=True)[0], torch.max(input, dim=0, keepdim=True)[0]
+    input_norm = (input-min)/(max-min)
+    return input_norm, (min, max)
+
+def norm_to_scale(input, scale):
+    min, max = scale
+    return (input-min)/(max-min)
+
+def renorm(input, scale):
+    min, max = scale
+    return input*(max-min)+min
+def normalize(dataset):
+    X_norm, X_scale = min_max_norm(dataset.X)
+    Y_norm, Y_scale = min_max_norm(dataset.Y)
+    return X_norm, Y_norm, X_scale, Y_scale
 
 
 class ContextDataset(Dataset):

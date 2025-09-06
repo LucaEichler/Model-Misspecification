@@ -13,7 +13,7 @@ import seed
 
 seed.set_seed(0)
 
-num_iters=10 #1000000
+num_iters=1000000
 tries = 10
 sizes = [1000, 5000, 20000, 50000]
 test_set_size=10000
@@ -58,6 +58,9 @@ for j in range(tries):
 
         mse_nn[j, i] = mse_rel
         mse_closed_form[j, i] = torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2)
+
+        with open("./exp3_rel_mse.csv", "a") as f:
+            f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
 
         print(torch.sum((Y_pred_nn-gt_Y)**2)/torch.sum(gt_Y ** 2))
         print(torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2))

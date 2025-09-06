@@ -13,7 +13,7 @@ import seed
 
 seed.set_seed(0)
 
-num_iters=1000000
+num_iters=1#1000000
 tries = 10
 sizes = [50, 200, 500, 2000, 5000, 20000, 50000]
 test_set_size=10000
@@ -23,10 +23,10 @@ dy=1
 dh=100
 validation_frequency = 1000
 
-results = []
-
 mse_nn = torch.empty((tries, len(sizes)))
 mse_closed_form = torch.empty((tries, len(sizes)))
+mse_nn_rel = torch.empty((tries, len(sizes)))
+mse_closed_form_rel = torch.empty((tries, len(sizes)))
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
@@ -56,8 +56,10 @@ for j in range(tries):
 
         mse_rel = torch.sum((Y_pred_nn - gt_Y) ** 2)/torch.sum(gt_Y ** 2)
 
-        mse_nn[j, i] = mse_rel
-        mse_closed_form[j, i] = torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2)
+        mse_nn[j, i] = torch.mean((Y_pred_nn - gt_Y) ** 2)
+        mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
+        mse_nn_rel[j, i] = mse_rel
+        mse_closed_form_rel[j, i] = torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2)
 
         with open("./exp3_rel_mse.csv", "a") as f:
             f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
@@ -102,6 +104,8 @@ def mean_and_ci(values, confidence=0.95):  #TODO: put in utility file and merge 
 
     return mean.item(), h.item()
 
+results = []
+
 for i in range(len(sizes)):
     mean_nn, error_nn = mean_and_ci(mse_nn[:, i], confidence=0.95)
     mean_cf, error_cf = mean_and_ci(mse_closed_form[:, i], confidence=0.95)
@@ -117,4 +121,22 @@ for i in range(len(sizes)):
 df = pd.DataFrame(results)
 
 df.to_csv("experiment3_results.csv", index=False)
+
+results = []
+
+for i in range(len(sizes)):
+    mean_nn, error_nn = mean_and_ci(mse_nn_rel[:, i], confidence=0.95)
+    mean_cf, error_cf = mean_and_ci(mse_closed_form_rel[:, i], confidence=0.95)
+    results.append({
+        "dataset_size": sizes[i],
+        "mse_nn": mean_nn,
+        "mse_cf": mean_cf,
+        "nn_err": error_nn,
+        "cf_err": error_cf
+    })
+
+# Create DataFrame
+df = pd.DataFrame(results)
+
+df.to_csv("experiment3_results_rel.csv", index=False)
 

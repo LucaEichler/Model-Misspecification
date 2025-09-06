@@ -20,6 +20,7 @@ dh = 100
 
 filename = "./exp5_data.csv" # file to save training data in
 filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
+filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
 
 test_set_size = 10000
 dataset_size = 20000
@@ -99,7 +100,7 @@ if mode == "generate":
 
 
 elif mode == "train":
-    data = np.loadtxt(filename, delimiter=",")
+    data = np.loadtxt(filename_train, delimiter=",")
     tensors = torch.tensor(data, dtype=torch.float32)
     loss = "mle-params"
 

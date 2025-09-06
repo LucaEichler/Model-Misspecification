@@ -22,7 +22,7 @@ filename = "./exp5_data.csv" # file to save training data in
 filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
 
 test_set_size = 10000
-dataset_size = 50000
+dataset_size = 20000
 num_iters = 1000000
 gen_iterations = 1000 # how many parameters to generate
 validation_frequency = 1000

@@ -15,7 +15,7 @@ seed.set_seed(0)
 
 num_iters=1000000
 tries = 10
-sizes = [1000, 5000, 20000, 50000]
+sizes = [50, 200, 500, 2000, 5000, 20000, 50000]
 test_set_size=10000
 val_set_size=10000
 dx=3

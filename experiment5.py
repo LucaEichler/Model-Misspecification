@@ -13,12 +13,12 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "generate" # "train"
+mode = "train" # "generate"
 dx = 3
 dy = 1
 dh = 100
 
-filename = "./exp5_data.csv" # file to save training data in
+filename = "exp5_data.csv"  # file to save training data in
 filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
 filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
 
@@ -110,8 +110,8 @@ elif mode == "train":
 
     model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_name, loss,
                                              **model_kwargs)
-    dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, config.noise_std, params_list=tensors, **model_kwargs)
-    valset = datasets.ContextDataset(1000, config.dataset_size_in_context, model_name, dx, dy, config.noise_std, **model_kwargs) #TODO: random split into train val test
+    dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=tensors, **model_kwargs)
+    valset = datasets.ContextDataset(1000, config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, **model_kwargs) #TODO: random split into train val test
     model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
                           lr=config.lr_in_context, use_wandb=config.wandb_enabled)
 

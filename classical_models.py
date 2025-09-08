@@ -43,6 +43,7 @@ class NonLinear(nn.Module):
 
 
     def forward(self, x, W=None):
+        x=x.to(self.linear1.device)
         # TODO: Check for correctness
         batched = W is not None
         if batched:
@@ -63,7 +64,8 @@ class NonLinear(nn.Module):
             x1 = torch.bmm(w1, x.transpose(1, 2).to(device)).transpose(1, 2) + b1.unsqueeze(1)
             x1 = torch.relu(x1)
             return torch.bmm(w2, x1.transpose(1, 2).to(device)).transpose(1, 2) + b2.unsqueeze(1)
-
+        print(x.device)
+        print(self.device)
         return self.linear2(self.relu(self.linear1(x)))
 
     def compute_loss(self, batch):

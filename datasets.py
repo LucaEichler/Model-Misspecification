@@ -39,7 +39,7 @@ def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
         X = torch.cat(X, dim=-1)
     elif x_dist == "gaussian":
         # sample x values
-        X = torch.randn(dataset_size, model.dx).to(model.device)
+        X = torch.randn(dataset_size, model.dx).to(device)
     else:
         raise ValueError(f"Wrong argument: {x_dist}. Expected 'uniform' or 'gaussian'.")
 

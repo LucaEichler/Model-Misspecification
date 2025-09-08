@@ -20,6 +20,7 @@ class NonLinear(nn.Module):
         self.linear1 = nn.Linear(dx, dh)
         self.linear2 = nn.Linear(dh, dy)
         self.relu = nn.ReLU()
+        self.to(device)
 
         if init_W is None:
             # init weights of network layers from standard normal distribution
@@ -43,7 +44,6 @@ class NonLinear(nn.Module):
 
 
     def forward(self, x, W=None):
-        x=x.to(self.linear1.device)
         # TODO: Check for correctness
         batched = W is not None
         if batched:

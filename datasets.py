@@ -36,7 +36,7 @@ def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
 
             xi = torch.empty(dataset_size).uniform_(lo, hi).unsqueeze(-1)
             X.append(xi)
-        X = torch.cat(X, dim=-1)
+        X = torch.cat(X, dim=-1).to(device)
     elif x_dist == "gaussian":
         # sample x values
         X = torch.randn(dataset_size, model.dx).to(device)

@@ -114,8 +114,6 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
     if config.early_stopping_enabled:
         early_stopping = EarlyStopping(patience=config.early_stopping_patience, min_delta=config.early_stopping_delta)
 
-
-    # TODO disable scheduler for non amortized models
     if isinstance(model, in_context_models.InContextModel):
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
@@ -160,17 +158,21 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
             #avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
+                # save model with the best validation loss
+                best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
             if config.early_stopping_enabled and early_stopping(val_loss, best_val_loss):
                 break
 
-
-
     wandb.finish()
 
+    # load best model configuration
+    model.load_state_dict(best_model_state)
+
     return model
+
 
 
 def train_step(model, optimizer, batch, scheduler, it):

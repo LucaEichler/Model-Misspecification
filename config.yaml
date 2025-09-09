@@ -19,7 +19,7 @@ test_trials: 2 #100 # How many test datasets to average results over / classical
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 
-load_best_model: True # True: load the model with the best validation loss during training, False: keep the model right after ending training
+load_best_model: False # True: load the model with the best validation loss during training, False: keep the model right after ending training
 
 # ====================================================================================
 # Parameters for Classical Models

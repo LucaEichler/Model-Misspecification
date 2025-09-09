@@ -10,6 +10,7 @@ from main import train_in_context_models
 
 import classical_models
 from classical_models import Linear
+from metrics import mse, mse_range, mse_rel
 
 dx=3
 dy=1
@@ -22,6 +23,8 @@ trained_in_context_models = train_in_context_models(dx=dx, dy=dy, x_dist='unifor
                             dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=0.5,
                             model_specs=model_specs)
 results = []
+results_range_normalized = []
+results_rel = []
 
 for model_spec in model_specs:
     for i in range(tries):
@@ -45,14 +48,30 @@ for model_spec in model_specs:
 
             #plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
 
-            results.append({
+            results_range_normalized.append({
                 "trial": i,
                 'gt': gt_model._get_name(),
                 'model_name': loss+" "+in_context_model.eval_model._get_name(),
-                "mse_params_closed_form_gradient_descent": torch.mean((closed_form_params-params)**2).item(),
-                "mse_closed_form_gradient_descent": torch.mean((closed_form_prediction-predictions)**2).item(),
-                "mse_closed_form": torch.mean((closed_form_prediction-ds_test.Y)**2).item(),
-                "mse_gradient_descent": torch.mean((predictions-ds_test.Y)**2).item()
+                "mse_range_cf": mse_range(closed_form_prediction, ds_test.Y).item(),
+                "mse_range_gd": mse_range(predictions, ds_test.Y).item(),
+            })
+
+            results_rel.append({
+                "trial": i,
+                'gt': gt_model._get_name(),
+                'model_name': loss + " " + in_context_model.eval_model._get_name(),
+                "mse_rel_cf": mse_rel(closed_form_prediction, ds_test.Y).item(),
+                "mse_rel_gd": mse_rel(predictions, ds_test.Y).item(),
+            })
+
+            results.append({
+                "trial": i,
+                'gt': gt_model._get_name(),
+                'model_name': loss + " " + in_context_model.eval_model._get_name(),
+                "mse_params_closed_form_gradient_descent": mse(closed_form_params, params).item(),
+                "mse_closed_form_gradient_descent": mse(closed_form_prediction, predictions).item(),
+                "mse_closed_form": mse(closed_form_prediction, ds_test.Y).item(),
+                "mse_gradient_descent": mse(predictions, ds_test.Y).item()
             })
 
             Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
@@ -71,6 +90,18 @@ df = pd.DataFrame(results)
 df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
 
 df_avg.to_csv("experiment2_results.csv", index=False)
+
+df = pd.DataFrame(results_range_normalized)
+
+df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+
+df_avg.to_csv("experiment2_results_range.csv", index=False)
+
+df = pd.DataFrame(results_rel)
+
+df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+
+df_avg.to_csv("experiment2_results_rel.csv", index=False)
 
 
 

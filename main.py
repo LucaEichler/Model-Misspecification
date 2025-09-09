@@ -169,7 +169,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
     wandb.finish()
 
     # load best model configuration
-    model.load_state_dict(best_model_state)
+    if config.load_best_model: model.load_state_dict(best_model_state)
 
     return model
 

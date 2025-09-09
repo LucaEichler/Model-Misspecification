@@ -15,7 +15,7 @@ wandb_exp_name: "Experiment 2"
 device: "cuda"
 noise_std: 0.
 dh: 100
-test_trials: 2 #100 # How many test datasets to average results over / classical models to train
+test_trials: 100 # How many test datasets to average results over / classical models to train
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 

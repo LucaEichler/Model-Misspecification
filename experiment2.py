@@ -84,14 +84,21 @@ for model_spec in model_specs:
                 "mse_gradient_descent": mse(predictions, ds_test.Y).item()
             })
 
+            # TODO generate input dataset of 128 points randomly from input space
+
+
             Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
             Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
             Yplot = gt_model(Xplot)
 
-            Y_predplot, params_predplot = in_context_model.predict(torch.cat((Xplot, Yplot), dim=-1).unsqueeze(0),
+            # plotting is flawed, need to give different input to amortized model / cf
+            # sample an input dataset from ground truth
+            ds_input = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[[-2., 2.], [-2., 2.], [-2., 2.]]]))
+
+            Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
                                                                    Xplot.unsqueeze(0))
 
-            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(Xplot, Yplot,
+            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y,
                                                                                               lambd=config.lambda_mle)
             Ypred_cf = in_context_model.eval_model.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
 

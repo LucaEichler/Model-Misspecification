@@ -7,11 +7,13 @@ import config
 import datasets
 import main
 import plotting
+import seed
 from main import train_in_context_models
 
 import classical_models
 from classical_models import Linear
 from metrics import mse, mse_range, mse_rel
+seed.set_seed(0)
 
 dx = 3
 dy = 1

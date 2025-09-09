@@ -12,10 +12,10 @@ from main import train, eval_plot
 import seed
 from metrics import mse, mse_rel, mse_range
 
-seed.set_seed(0)
+seed.set_seed(1)
 
 num_iters= 1000000
-tries = 10
+tries = 100
 sizes = [50, 200, 500, 2000, 5000, 20000, 50000]
 test_set_size=10000
 val_set_size=10000

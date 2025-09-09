@@ -187,7 +187,7 @@ def train_step(model, optimizer, batch, scheduler, it):
         scheduler.step()
     return loss
 
-def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
+def eval_plot(ds_name, model_name, gt, X_eval, Y_pred, Y_pred_cf=None):
     X = torch.linspace(-2, 2, 25).unsqueeze(1).to(device)
     X = torch.cat([X, X, X], dim=-1)
 
@@ -199,6 +199,9 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred):
     plt.scatter(X_eval.detach().cpu().numpy(), Y_pred.detach().cpu().numpy(), color='orange')
     plt.text(0.01, 0.99, ds_name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='left')
+
+    if Y_pred_cf is not None:
+        plt.scatter(X[:, 0].detach().cpu().numpy(), Y_pred_cf.detach().cpu().numpy(), color = 'green')
 
     # Upper right
     plt.text(0.99, 0.99, model_name, transform=plt.gca().transAxes,

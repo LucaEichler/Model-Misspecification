@@ -112,6 +112,49 @@ def normalize_to_scales(x, scales):
 
     return x_norm
 
+class TransformerAggregateOutput(nn.Module):
+    def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
+        super().__init__()
+        self.normalize = True
+        self.dIn = dx + dy
+        self.dOut = dOut
+        self.dT = dT
+
+        self.learnable_query = nn.Parameter(torch.randn(1, 1, dT))
+        self.multihead_attention = nn.MultiheadAttention(embed_dim=dT, num_heads=1)
+
+        # This layer maps the input of dim dx+dy to the desired Transformer dimensionality dT
+        self.encoder = nn.Linear(self.dIn, dT)
+
+        # This layer maps from the Transformer output of dim dT to the desired output dim dT
+        self.decoder = nn.Linear(dT, dOut)
+
+        self.scale_encoder = nn.Linear(2, dT)
+
+        # init the actual Transformer
+        tsf_layer = nn.TransformerEncoderLayer(d_model=dT, nhead=num_heads, dim_feedforward=4 * dT, batch_first=False)
+        self.transformer_model = nn.TransformerEncoder(tsf_layer, num_layers=num_layers, enable_nested_tensor=False)
+
+
+    def forward(self, x):
+        scales = None
+        if self.normalize:
+            x_norm, scales = normalize_input(x)
+            x = x_norm
+
+        # x is of shape (seq_length, batch_size, dx)
+        x_emb = self.encoder(x)
+
+        # forward through transformer
+        tf_out = self.transformer_model(x_emb)
+
+        q = self.learnable_query.repeat(1, x.size(1), 1)
+        attn_output, _ = self.multihead_attention(query=q, key=tf_out, value=tf_out)
+
+        # map to desired output dimension (only take output at CLS token) & return
+        return self.decoder(attn_output.squeeze(0)), scales
+
+
 
 class Transformer2(nn.Module):
     def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
@@ -178,7 +221,7 @@ class InContextModel(nn.Module):
         dOut = self.eval_model.count_params()
         if self.loss in ['forward-kl', 'backward-kl']:
             dOut *=2
-        self.transformer = Transformer2(dx, dy, dOut, dT, num_heads, num_layers)
+        self.transformer = TransformerAggregateOutput(dx, dy, dOut, dT, num_heads, num_layers)
 
         count_and_print_params(self)
 

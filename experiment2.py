@@ -24,7 +24,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
 tries = config.test_trials
 dataset_size = config.dataset_size_in_context
 
-save_path = './exp2_trained_in_context_models/'
+save_path = './exp2_trained_in_context_models_aggregate/'
 os.makedirs(save_path, exist_ok=True)
 
 trained_in_context_models = train_in_context_models(dx=dx, dy=dy, x_dist='uniform', dataset_amount=config.dataset_amount,

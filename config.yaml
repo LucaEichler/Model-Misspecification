@@ -7,9 +7,9 @@
 # General Parameters
 # ====================================================================================
 
-wandb_enabled: False
+wandb_enabled: True
 wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Experiment 2"
+wandb_exp_name: "Experiment 2 - Ablation 1M iters"
 
 
 device: "cuda"
@@ -19,7 +19,7 @@ test_trials: 100 # How many test datasets to average results over / classical mo
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 
-load_best_model: False # True: load the model with the best validation loss during training, False: keep the model right after ending training
+load_best_model: True # True: load the model with the best validation loss during training, False: keep the model right after ending training
 
 # ====================================================================================
 # Parameters for Classical Models
@@ -34,7 +34,7 @@ weight_decay_classical: 0.001 # use optimizer-based weight decay instead
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 100000
+num_iters_in_context: 1000000 #100000
 lr_in_context: 0.0001
 dataset_size_in_context: 128
 dataset_amount: 100000
@@ -45,6 +45,6 @@ batch_size_in_context: 100
 # Parameters for Early Stopping
 # ====================================================================================
 
-early_stopping_enabled: True
+early_stopping_enabled: False #TODO keep in mind early stopping disabled
 early_stopping_patience: 10.
 early_stopping_delta: 0.01

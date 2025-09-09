@@ -10,6 +10,7 @@ import main
 from classical_models import Linear, NonLinear
 from main import train, eval_plot
 import seed
+from metrics import mse, mse_rel, mse_range
 
 seed.set_seed(0)
 
@@ -27,6 +28,8 @@ mse_nn = torch.empty((tries, len(sizes)))
 mse_closed_form = torch.empty((tries, len(sizes)))
 mse_nn_rel = torch.empty((tries, len(sizes)))
 mse_closed_form_rel = torch.empty((tries, len(sizes)))
+mse_nn_range = torch.empty((tries, len(sizes)))
+mse_closed_form_range = torch.empty((tries, len(sizes)))
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
@@ -54,20 +57,18 @@ for j in range(tries):
 
         Y_pred_nn = model_nn(test_set.X)
 
-        mse_rel = torch.sum((Y_pred_nn - gt_Y) ** 2)/torch.sum(gt_Y ** 2)
 
-        mse_nn[j, i] = torch.mean((Y_pred_nn - gt_Y) ** 2)
-        mse_closed_form[j, i] = torch.mean((Y_pred_closed_form-gt_Y)**2)
-        mse_nn_rel[j, i] = mse_rel
-        mse_closed_form_rel[j, i] = torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2)
+        mse_nn[j, i] = mse(Y_pred_nn, gt_Y)
+        mse_closed_form[j, i] = mse(Y_pred_closed_form, gt_Y)
+        mse_nn_rel[j, i] = mse_rel(Y_pred_nn, gt_Y)
+        mse_closed_form_rel[j, i] = mse_rel(Y_pred_closed_form, gt_Y)
+        mse_nn_range[j, i] = mse_range(Y_pred_nn, gt_Y)
+        mse_closed_form_range[j, i] = mse_range(Y_pred_closed_form, gt_Y)
+
+
 
         with open("./exp3_mse.csv", "a") as f:
             f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
-        with open("./exp3_rel_mse.csv", "a") as f:
-                    f.write(str(mse_nn_rel[j, i].item()) + " " + str(mse_closed_form_rel[j, i].item()) + "\n")
-
-        print(torch.sum((Y_pred_nn-gt_Y)**2)/torch.sum(gt_Y ** 2))
-        print(torch.sum((Y_pred_closed_form-gt_Y)**2)/torch.sum(gt_Y ** 2))
 
         # visualize in normalized space
 
@@ -141,4 +142,22 @@ for i in range(len(sizes)):
 df = pd.DataFrame(results)
 
 df.to_csv("experiment3_results_rel.csv", index=False)
+
+results = []
+
+for i in range(len(sizes)):
+    mean_nn, error_nn = mean_and_ci(mse_nn_range[:, i], confidence=0.95)
+    mean_cf, error_cf = mean_and_ci(mse_closed_form_range[:, i], confidence=0.95)
+    results.append({
+        "dataset_size": sizes[i],
+        "mse_nn": mean_nn,
+        "mse_cf": mean_cf,
+        "nn_err": error_nn,
+        "cf_err": error_cf
+    })
+
+# Create DataFrame
+df = pd.DataFrame(results)
+
+df.to_csv("experiment3_results_range.csv", index=False)
 

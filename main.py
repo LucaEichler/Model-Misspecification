@@ -158,7 +158,9 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
                     wandb.log({"val_loss": val_loss.item(), "iteration": it})
             #recent_val_losses.append(val_loss)
             #avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
-            if val_loss < best_val_loss: best_val_loss = val_loss
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
             if config.early_stopping_enabled and early_stopping(val_loss, best_val_loss):

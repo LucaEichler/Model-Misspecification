@@ -1,4 +1,4 @@
-# Test the normalization:
+# Test the parameter normalization:
 # Generate ground truth model
 # Generate input data with no noise
 # Normalize input data

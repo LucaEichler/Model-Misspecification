@@ -180,6 +180,8 @@ class InContextModel(nn.Module):
             dOut *=2
         self.transformer = Transformer2(dx, dy, dOut, dT, num_heads, num_layers)
 
+        count_and_print_params(self)
+
     def forward(self, x):
         # Transformer directly maps to parameters
         return self.transformer(x)

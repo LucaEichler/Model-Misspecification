@@ -13,7 +13,7 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "generate" # "generate"
+mode = "train" # "generate"
 dx = 3
 dy = 1
 dh = 100

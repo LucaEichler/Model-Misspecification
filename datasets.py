@@ -102,6 +102,7 @@ class ContextDataset(Dataset):
             for i in range(size):
                 if params_list is not None: # add params to kwargs
                     W = params_list[i, :]
+                    #TODO store and load bounds
 
                 # Create new model which will be underlying this dataset
                 model = eval(model_class)(dx, dy, init_W=W, **kwargs).to(device)

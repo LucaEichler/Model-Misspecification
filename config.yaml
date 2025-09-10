@@ -45,6 +45,6 @@ batch_size_in_context: 100
 # Parameters for Early Stopping
 # ====================================================================================
 
-early_stopping_enabled: True
+early_stopping_enabled: False
 early_stopping_patience: 10.
 early_stopping_delta: 0.01

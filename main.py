@@ -45,9 +45,9 @@ def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_
             model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+loss + " " + model.eval_model._get_name()+".pt"
             if os.path.exists(model_path):  # load model if already exists
-                model.load_state_dict(torch.load(model_path))
+                model.load_state_dict(torch.load(model_path, map_location=config.device))
                 trained_models.append((loss, model))
-                break
+                continue
 
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
@@ -216,7 +216,7 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred, Y_pred_cf=None):
     plt.text(0.99, 0.99, model_name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='right')
     plt.savefig("./plots/"+model_name+" - "+ds_name)
-    plt.show()
+    #plt.show()
     plt.close()
 
 def eval_plot_nn(name, Y_gt, X_eval, Y_pred):

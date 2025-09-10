@@ -93,7 +93,7 @@ for model_spec in model_specs:
 
             # plotting is flawed, need to give different input to amortized model / cf
             # sample an input dataset from ground truth
-            ds_input = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[[-2., 2.], [-2., 2.], [-2., 2.]]]))
+            ds_input = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
             Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
                                                                    Xplot.unsqueeze(0))

@@ -13,14 +13,15 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "train" # "generate"
+mode = "generate" # "generate"
 dx = 3
 dy = 1
 dh = 100
 
 filename = "exp5_data.csv"  # file to save training data in
 filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
-filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
+#filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
+filename_bounds = "./exp5_bounds.csv" # use different filename for train so that generate does not accidently write into it
 
 test_set_size = 10000
 dataset_size = 20000
@@ -76,6 +77,8 @@ if mode == "generate":
             f.write(",".join(map(str, W.tolist())) + "\n")
         with open(filename_error, "a") as f:
             f.write((str(mse_nn_rel.item())) + "\n")
+        with open(filename_bounds, "a") as f:
+            f.write(",".join(map(str, bounds.flatten().tolist())) + "\n")
 
 
         # visualize in normalized space
@@ -100,7 +103,10 @@ if mode == "generate":
 
 
 elif mode == "train":
-    data = np.loadtxt(filename_train, delimiter=",")
+    bounds = np.loadtxt(filename_bounds, delimiter=",")
+    bounds = torch.tensor(bounds, dtype=torch.float32).reshape(-1, dx, 2)
+
+    data = np.loadtxt(filename, delimiter=",")
     tensors = torch.tensor(data, dtype=torch.float32)
     loss = "mle-params"
 
@@ -110,7 +116,7 @@ elif mode == "train":
 
     model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_name, loss,
                                              **model_kwargs)
-    dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=tensors, **model_kwargs)
+    dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=tensors, bounds=bounds, **model_kwargs)
     valset = datasets.ContextDataset(1000, config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, **model_kwargs) #TODO: random split into train val test
     model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
                           lr=config.lr_in_context, use_wandb=config.wandb_enabled)

@@ -25,6 +25,7 @@ tries = config.test_trials
 dataset_size = config.dataset_size_in_context
 
 save_path = './exp2_trained_in_context_models_aggregate/'
+
 os.makedirs(save_path, exist_ok=True)
 
 trained_in_context_models = train_in_context_models(dx=dx, dy=dy, x_dist='uniform', dataset_amount=config.dataset_amount,
@@ -93,12 +94,12 @@ for model_spec in model_specs:
 
             # plotting is flawed, need to give different input to amortized model / cf
             # sample an input dataset from ground truth
-            ds_input = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+            ds_input_plot = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
-            Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
+            Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
                                                                    Xplot.unsqueeze(0))
 
-            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y,
+            closed_form_params = in_context_model.eval_model.closed_form_solution_regularized(ds_input_plot.X, ds_input_plot.Y,
                                                                                               lambd=config.lambda_mle)
             Ypred_cf = in_context_model.eval_model.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
 
@@ -130,3 +131,4 @@ df_avg.to_csv("experiment2_results_rel.csv", index=False)
 # 2. experiments with heuristics for N
 
 # 3. train models with trained params
+

@@ -9,13 +9,13 @@
 
 wandb_enabled: False
 wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Experiment 2 - 1M iters"
+wandb_exp_name: "Experiment 2 - 100k iters, 3M params, 1024 dataset size"
 
 
 device: "cuda"
 noise_std: 0.
 dh: 100
-test_trials: 10 # How many test datasets to average results over / classical models to train
+test_trials: 100 # How many test datasets to average results over / classical models to train
 
 lambda_mle: 0.12 # value for the regularizing term of mle. has to be scaled by dataset size
 
@@ -34,10 +34,10 @@ weight_decay_classical: 0.001 # use optimizer-based weight decay instead
 # Parameters for In-Context Models
 # ====================================================================================
 
-num_iters_in_context: 1000000 #1000000 #100000
+num_iters_in_context: 1 #100000
 lr_in_context: 0.0001
-dataset_size_in_context: 128
-dataset_amount: 100000
+dataset_size_in_context: 1024
+dataset_amount: 100 #100000
 weight_decay_in_context: 0.0001
 batch_size_in_context: 100
 
@@ -45,6 +45,6 @@ batch_size_in_context: 100
 # Parameters for Early Stopping
 # ====================================================================================
 
-early_stopping_enabled: False
+early_stopping_enabled: True
 early_stopping_patience: 10.
 early_stopping_delta: 0.01

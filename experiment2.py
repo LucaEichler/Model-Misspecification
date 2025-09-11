@@ -28,7 +28,16 @@ save_path = './exp2_trained_in_context_models_doublelayers/'
 
 os.makedirs(save_path, exist_ok=True)
 
-trained_in_context_models = train_in_context_models(dx=dx, dy=dy, x_dist='uniform', dataset_amount=config.dataset_amount,
+transformer_arch = {
+        'dt': 256,
+        'num_heads': 4,
+        'num_layers': 4,
+        'output': 'attention-pool'
+    }
+
+dataset_amount=100000
+
+trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=transformer_arch, x_dist='uniform', dataset_amount=config.dataset_amount,
                                                     dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,
                                                     num_iters=config.num_iters_in_context, noise_std=0.5, model_specs=model_specs, save_path=save_path)
 results = []

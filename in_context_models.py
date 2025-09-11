@@ -203,7 +203,7 @@ class Transformer2(nn.Module):
 
 
 class InContextModel(nn.Module):
-    def __init__(self, dx, dy, dT, num_heads, num_layers, output_model, loss, **kwargs):
+    def __init__(self, dx, dy, transformer_arch, output_model, loss, **kwargs):
         super().__init__()
         self.dx = dx
         self.dy = dy
@@ -221,7 +221,11 @@ class InContextModel(nn.Module):
         dOut = self.eval_model.count_params()
         if self.loss in ['forward-kl', 'backward-kl']:
             dOut *=2
-        self.transformer = TransformerAggregateOutput(dx, dy, dOut, dT, num_heads, num_layers)
+        if transformer_arch['output'] == 'attention-pool':
+            self.transformer = TransformerAggregateOutput(dx, dy, dOut, transformer_arch['dT'], transformer_arch['num_heads'], transformer_arch['num_layers'])
+        elif transformer_arch['output'] == 'cls':
+            self.transformer = Transformer2(dx, dy, dOut, transformer_arch['dT'], transformer_arch['num_heads'], transformer_arch['num_layers'])
+
         count_and_print_params(self)
 
     def forward(self, x):

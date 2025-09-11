@@ -33,7 +33,7 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs, save_path=None):
+def train_in_context_models(dx, dy, transformer_arch, x_dist, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs, save_path=None):
     losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
     trained_models = []
@@ -42,7 +42,7 @@ def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         for loss in losses:
-            model = in_context_models.InContextModel(dx, dy, 256, 4, 8, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
+            model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+loss + " " + model.eval_model._get_name()+".pt"
             if os.path.exists(model_path):  # load model if already exists
                 model.load_state_dict(torch.load(model_path, map_location=config.device))
@@ -52,7 +52,7 @@ def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_
             dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
-                  lr=config.lr_in_context, use_wandb=config.wandb_enabled)
+                  lr=config.lr_in_context, weight_decay=config.weight_decay_in_context, use_wandb=config.wandb_enabled)
             trained_models.append((loss, model_trained))
             if save_path is not None:
                 torch.save(model_trained.state_dict(), model_path)
@@ -101,7 +101,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
-def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, use_wandb = False):
+def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, use_wandb = False, early_stopping_params=config.early_stopping_params):
     if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
 
     if use_wandb:
@@ -120,17 +120,17 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
     if valset is not None: valloader = DataLoader(valset, batch_size=batch_size, shuffle=False)
 
-    if config.early_stopping_enabled:
-        early_stopping = EarlyStopping(patience=config.early_stopping_patience, min_delta=config.early_stopping_delta)
+    if early_stopping_params['early_stopping_enabled']:
+        early_stopping = EarlyStopping(patience=early_stopping_params['patience'], min_delta=early_stopping_params['min_delta'])
 
     if isinstance(model, in_context_models.InContextModel):
-        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
         # cosine decay after warmup: we'll step this manually after warmup period
-        cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(config.num_iters_in_context - 2000), eta_min=1e-6)
+        cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(iterations - 2000), eta_min=1e-6)
         plateau_scheduler = None
     else:
-        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=config.weight_decay_classical)  # TODO weight decay config
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # TODO weight decay config
         plateau_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, threshold=1e-4)
     tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
     i = 0
@@ -172,7 +172,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr = 0.001, u
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
-            if config.early_stopping_enabled and early_stopping(val_loss, best_val_loss):
+            if early_stopping_params['early_stopping_enabled'] and early_stopping(val_loss, best_val_loss):
                 break
 
     wandb.finish()

@@ -114,7 +114,14 @@ elif mode == "train":
     model_kwargs = {'dh': config.dh}
     batch_size = config.batch_size_in_context
 
-    model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_name, loss,
+    transformer_arch = {
+        'dt': 256,
+        'num_heads': 4,
+        'num_layers': 8,
+        'output': 'attention-pool'
+    }
+
+    model = in_context_models.InContextModel(dx, dy, transformer_arch, model_name, loss,
                                              **model_kwargs)
     dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=tensors, bounds=bounds, **model_kwargs)
     valset = datasets.ContextDataset(1000, config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, **model_kwargs) #TODO: random split into train val test

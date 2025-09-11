@@ -42,7 +42,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
-            model_path = save_path+loss + " " + model.eval_model._get_name()+".pt"
+            model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()+".pt"
             if os.path.exists(model_path):  # load model if already exists
                 model.load_state_dict(torch.load(model_path, map_location=config.device))
                 trained_models.append((loss, model))
@@ -177,7 +177,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
     wandb.finish()
 
     # load best model configuration
-    if config.load_best_model: model.load_state_dict(best_model_state)
+    if early_stopping_params['load_best']: model.load_state_dict(best_model_state)
 
     return model
 
@@ -195,7 +195,7 @@ def train_step(model, optimizer, batch, scheduler, it):
         scheduler.step()
     return loss
 
-def eval_plot(ds_name, model_name, gt, X_eval, Y_pred, Y_pred_cf=None):
+def eval_plot(ds_name, model_name, gt, X_eval, Y_pred, Y_pred_cf=None, savepath=None):
     X = torch.linspace(-2, 2, 25).unsqueeze(1).to(device)
     X = torch.cat([X, X, X], dim=-1)
 
@@ -214,7 +214,7 @@ def eval_plot(ds_name, model_name, gt, X_eval, Y_pred, Y_pred_cf=None):
     # Upper right
     plt.text(0.99, 0.99, model_name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='right')
-    plt.savefig("./plots/"+model_name+" - "+ds_name)
+    plt.savefig(savepath+"/plots/"+model_name+" - "+ds_name)
     #plt.show()
     plt.close()
 

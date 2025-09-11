@@ -33,8 +33,7 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, transformer_arch, x_dist, dataset_amount, dataset_size, batch_size, num_iters, noise_std, model_specs, save_path=None):
-    losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
+def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise_std, model_specs, losses, early_stopping_params, save_path=None):
 
     trained_models = []
 
@@ -49,10 +48,10 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, dataset_amount, da
                 trained_models.append((loss, model))
                 continue
 
-            dataset = datasets.ContextDataset(dataset_amount, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            valset = datasets.ContextDataset(1000, dataset_size, model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
-                  lr=config.lr_in_context, weight_decay=config.weight_decay_in_context, use_wandb=config.wandb_enabled)
+            dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+            valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+            model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
+                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled)
             trained_models.append((loss, model_trained))
             if save_path is not None:
                 torch.save(model_trained.state_dict(), model_path)

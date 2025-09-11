@@ -21,8 +21,6 @@ dy = 1
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-tries = config.test_trials
-dataset_size = config.dataset_size_in_context
 
 save_path = './exp2_trained_in_context_models_doublelayers/'
 
@@ -35,17 +33,28 @@ transformer_arch = {
         'output': 'attention-pool'
     }
 
-dataset_amount=100000
+train_specs = {
+    'lr':0.0001,
+    'weight_decay': 1e-5,
+    'dataset_amount': 100000,
+    'dataset_size': 128,
+    'num_iters': 100000,
+    'batch_size': 100
+}
 
-trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=transformer_arch, x_dist='uniform', dataset_amount=config.dataset_amount,
-                                                    dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,
-                                                    num_iters=config.num_iters_in_context, noise_std=0.5, model_specs=model_specs, save_path=save_path)
+dataset_size = train_specs['dataset_size']
+trials = 100
+
+losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
+
+
+trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=transformer_arch, x_dist='uniform', train_specs=train_specs, noise_std=0.5, model_specs=model_specs, losses=losses, save_path=save_path)
 results = []
 results_range_normalized = []
 results_rel = []
 
 for model_spec in model_specs:
-    for i in range(tries):
+    for i in range(trials):
 
         # create new ground truth model for evaluation
         gt_model = eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])

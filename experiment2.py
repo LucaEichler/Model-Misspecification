@@ -24,7 +24,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
 tries = config.test_trials
 dataset_size = config.dataset_size_in_context
 
-save_path = './exp2_trained_in_context_models_1024size/'
+save_path = './exp2_trained_in_context_models_doublelayers/'
 
 os.makedirs(save_path, exist_ok=True)
 

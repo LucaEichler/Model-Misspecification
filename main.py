@@ -42,7 +42,7 @@ def train_in_context_models(dx, dy, x_dist, dataset_amount, dataset_size, batch_
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         for loss in losses:
-            model = in_context_models.InContextModel(dx, dy, 256, 4, 4, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
+            model = in_context_models.InContextModel(dx, dy, 256, 4, 8, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+loss + " " + model.eval_model._get_name()+".pt"
             if os.path.exists(model_path):  # load model if already exists
                 model.load_state_dict(torch.load(model_path, map_location=config.device))

@@ -169,7 +169,7 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-specs_1['transformer_arch']['dataset_size'] = 1024
+specs_1['train_specs']['dataset_size'] = 1024
 specs_1['save_path'] = './exp2_trained_in_context_models_1024'
 
 """specs_2 = copy.deepcopy(default_specs)

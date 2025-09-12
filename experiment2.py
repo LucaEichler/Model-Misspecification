@@ -18,7 +18,7 @@ seed.set_seed(0)
 
 dx = 3
 dy = 1
-plot=False
+plot=True
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -27,7 +27,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
 
 input_set_size = 128    # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
-trials = 100            # amount of ground truth functions that the model is tested on
+trials = 10           # amount of ground truth functions that the model is tested on
 
 
 def run_experiments(exp2_specs):
@@ -169,11 +169,11 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-specs_1['transformer_arch']['num_layers'] = 8
-specs_1['save_path'] = './exp2_8layers'
+specs_1['transformer_arch']['num_layers'] = 1024
+specs_1['save_path'] = './exp2_trained_in_context_models_1024'
 
-specs_2 = copy.deepcopy(default_specs)
-specs_2['train_specs']['dataset_size'] = 1024
-specs_2['save_path'] = './exp2_1024datasetsize'
-
-run_experiments([specs_1, specs_2])
+"""specs_2 = copy.deepcopy(default_specs)
+specs_2['train_specs']['dataset_size'] = 128
+specs_2['save_path'] = './exp2_trained_in_context_models_aggregate'
+"""
+run_experiments([specs_1])

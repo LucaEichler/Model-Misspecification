@@ -152,6 +152,7 @@ default_specs = {
     'train_specs':
     {
         'lr':0.0001,
+        'min_lr': 1e-6,
         'weight_decay': 1e-5,
         'dataset_amount': 100000,
         'dataset_size': 128,
@@ -169,8 +170,15 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-specs_1['train_specs']['lr'] = 0.001
-specs_1['save_path'] = './exp2_higher_learning_rate'
+#specs_1['train_specs']['weight_decay'] = 1e-6
+specs_1['save_path'] = './exp2_higher_final_lr'
+specs_1['losses'] = ['mle-dataset']
+specs_1['train_specs']['min_lr'] = 1e-5
+
+specs_2 = copy.deepcopy(default_specs)
+specs_2['save_path'] = './exp2_lower_weight_decay'
+specs_2['train_specs']['weight_decay'] = 1e-6
+specs_2['losses'] = ['mle-dataset']
 
 
-run_experiments([specs_1])
+run_experiments([specs_1, specs_2])

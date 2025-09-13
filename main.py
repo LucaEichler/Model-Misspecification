@@ -51,7 +51,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
             dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled)
+                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'])
             trained_models.append((loss, model_trained))
             if save_path is not None:
                 torch.save(model_trained.state_dict(), model_path)
@@ -100,7 +100,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
 
-def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, use_wandb = False, early_stopping_params=config.early_stopping_params):
+def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5):
     if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
 
     if use_wandb:
@@ -126,7 +126,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
         warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_fn)
         # cosine decay after warmup: we'll step this manually after warmup period
-        cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(iterations - 2000), eta_min=1e-6)
+        cosine_scheduler = CosineAnnealingLR(optimizer, T_max=(iterations - 2000), eta_min=min_lr)
         plateau_scheduler = None
     else:
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # TODO weight decay config

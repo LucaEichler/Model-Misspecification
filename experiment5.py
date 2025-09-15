@@ -150,6 +150,7 @@ elif mode == "train":
 
     tries = 10
     for i in range(tries):
+        evalmodel = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
 
         # create new ground truth model for evaluation
         gt_model = eval(model_name)(dx=dx, dy=dy, **model_kwargs)
@@ -167,10 +168,10 @@ elif mode == "train":
             torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
             Xplot.unsqueeze(0))
 
-        closed_form_params = model_trained.eval_model.closed_form_solution_regularized(ds_input_plot.X,
+        closed_form_params = evalmodel.closed_form_solution_regularized(ds_input_plot.X,
                                                                                           ds_input_plot.Y,
                                                                                           lambd=config.lambda_mle)
-        Ypred_cf = model_trained.eval_model.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
+        Ypred_cf = evalmodel.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
 
         main.eval_plot(gt_model._get_name() + " " + str(i), loss + " " + model_trained.eval_model._get_name(),
                        gt_model, Xplot[:, 0], Y_predplot.squeeze(0), Ypred_cf)

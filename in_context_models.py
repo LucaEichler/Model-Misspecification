@@ -113,9 +113,9 @@ def normalize_to_scales(x, scales):
     return x_norm
 
 class TransformerAggregateOutput(nn.Module):
-    def __init__(self, dx, dy, dOut, dT, num_heads, num_layers):
+    def __init__(self, dx, dy, dOut, dT, num_heads, num_layers, normalize):
         super().__init__()
-        self.normalize = True
+        self.normalize = normalize
         self.dIn = dx + dy
         self.dOut = dOut
         self.dT = dT
@@ -203,12 +203,12 @@ class Transformer2(nn.Module):
 
 
 class InContextModel(nn.Module):
-    def __init__(self, dx, dy, transformer_arch, output_model, loss, **kwargs):
+    def __init__(self, dx, dy, transformer_arch, output_model, loss, normalize=True, **kwargs):
         super().__init__()
         self.dx = dx
         self.dy = dy
         self.loss = loss
-        self.normalize = True
+        self.normalize = normalize
 
         # Create model which will be used for evaluation and freeze its parameters
         # With the batched forward, freezing should not be needed, maybe remove later
@@ -222,7 +222,7 @@ class InContextModel(nn.Module):
         if self.loss in ['forward-kl', 'backward-kl']:
             dOut *=2
         if transformer_arch['output'] == 'attention-pool':
-            self.transformer = TransformerAggregateOutput(dx, dy, dOut, transformer_arch['dT'], transformer_arch['num_heads'], transformer_arch['num_layers'])
+            self.transformer = TransformerAggregateOutput(dx, dy, dOut, transformer_arch['dT'], transformer_arch['num_heads'], transformer_arch['num_layers'], normalize)
         elif transformer_arch['output'] == 'cls':
             self.transformer = Transformer2(dx, dy, dOut, transformer_arch['dT'], transformer_arch['num_heads'], transformer_arch['num_layers'])
 
@@ -242,7 +242,8 @@ class InContextModel(nn.Module):
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
         pred_params, scales = self(context_datasets.transpose(0, 1))
-        input = normalize_to_scales(input, scales)
+        if self.normalize:
+            input = normalize_to_scales(input, scales)
 
 
         if self.loss in ['forward-kl', 'backward-kl']:
@@ -260,7 +261,8 @@ class InContextModel(nn.Module):
             model_predictions /= float(eval_samples)
         else: model_predictions = self.eval_model.forward(input, pred_params)  # (batch_size, dataset_size, dy)
 
-        return renormalize(model_predictions, scales), pred_params
+        if self.normalize: model_predictions = renormalize(model_predictions, scales)
+        return model_predictions, pred_params
 
     def compute_forward(self, batch):
         datasets_in, gt_params = batch
@@ -306,7 +308,8 @@ class InContextModel(nn.Module):
         if self.normalize:
             model_predictions = renormalize(model_predictions, scales)
 
-        mse = torch.mean(torch.sum((datasets_in_Y - model_predictions) ** 2, dim=1), dim=0)
+        if self.loss in ['backward-kl', 'mle-dataset']:
+            mse = torch.mean(torch.sum((datasets_in_Y - model_predictions) ** 2, dim=1), dim=0)
 
         if self.loss == 'backward-kl':
             return mse + torch.sum(torch.exp(logvariances)-logvariances-1+means**2, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, model_predictions

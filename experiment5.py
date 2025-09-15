@@ -13,7 +13,7 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "generate" # "generate"
+mode = "train" # "generate"
 dx = 3
 dy = 1
 dh = 100
@@ -108,6 +108,10 @@ elif mode == "train":
 
     data = np.loadtxt(filename, delimiter=",")
     tensors = torch.tensor(data, dtype=torch.float32)
+    train_data = tensors[0:8000, :]
+    train_bounds = bounds[0:8000, :, :]
+    val_data = tensors[8000:9000, :]
+    val_bounds = bounds[8000:9000,:, :]
     loss = "mle-params"
 
     model_name = 'NonLinear'
@@ -115,18 +119,34 @@ elif mode == "train":
     batch_size = config.batch_size_in_context
 
     transformer_arch = {
-        'dt': 256,
+        'dT': 256,
         'num_heads': 4,
-        'num_layers': 8,
+        'num_layers': 4,
         'output': 'attention-pool'
     }
+    train_specs = {
+        'lr': 0.0001,
+        'min_lr': 1e-6,
+        'weight_decay': 1e-5,
+        'dataset_amount': 100000,
+        'dataset_size': 128,
+        'num_iters': 100000,
+        'batch_size': 100
+    }
+    early_stopping_params = {
+        'early_stopping_enabled': True,
+        'patience': 10,
+        'min_delta': 0.01,
+        'load_best': False
+    }
 
-    model = in_context_models.InContextModel(dx, dy, transformer_arch, model_name, loss,
+
+    model = in_context_models.InContextModel(dx, dy, transformer_arch, model_name, loss, normalize=False,
                                              **model_kwargs)
-    dataset = datasets.ContextDataset(tensors.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=tensors, bounds=bounds, **model_kwargs)
-    valset = datasets.ContextDataset(1000, config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, **model_kwargs) #TODO: random split into train val test
-    model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=num_iters, batch_size=batch_size,
-                          lr=config.lr_in_context, use_wandb=config.wandb_enabled)
+    dataset = datasets.ContextDataset(train_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=train_data, bounds=train_bounds, **model_kwargs)
+    valset = datasets.ContextDataset(val_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=val_data, bounds=val_bounds, **model_kwargs)
+    model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
+                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'])
 
     tries = 10
     for i in range(tries):

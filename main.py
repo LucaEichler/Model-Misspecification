@@ -190,6 +190,7 @@ def train_step(model, optimizer, batch, scheduler, it):
 
     loss = model.compute_loss(batch)
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
     if scheduler is not None:
         scheduler.step()

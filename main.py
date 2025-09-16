@@ -219,6 +219,9 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
                 if it+start_iter > min_save_iters and it != 0:
                     # save model with the best validation loss
                     save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"_"+str(it+start_iter)+".pt")
+            if (it + start_iter) % 50000 == 0:
+                save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
+                                save_path + "backup" + ".pt")
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)

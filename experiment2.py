@@ -159,7 +159,7 @@ default_specs = {
         'batch_size': 100
     },
     'early_stopping_params': {
-        'early_stopping_enabled': True,
+        'early_stopping_enabled': False,
         'patience': 10,
         'min_delta': 0.01,
         'load_best': False

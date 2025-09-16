@@ -122,6 +122,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
 def load_latest_checkpoint(model, optimizer=None, scheduler=None, dir="defaultdir"):
     # find all checkpoint files
+    if dir is None: return 0, None
     checkpoints = [f for f in os.listdir(dir) if f.endswith(".pt")]
     if not checkpoints:
         return 0, None
@@ -220,9 +221,9 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             if val_loss < best_val_loss:    # execute if validation loss reaches a new best
                 best_val_loss = val_loss
                 if it+start_iter > min_save_iters and it != 0:  # save if some minimum threshold of iterations has been reached
-                    save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"/_"+str(it+start_iter)+".pt")
+                    if save_path is not None: save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"/_"+str(it+start_iter)+".pt")
             if (it + start_iter) % 50000 == 0:  # every 50000 steps, save a backup file so that training may be continued from that point
-                save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
+                if save_path is not None: save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
                                 save_path + "/backup" + ".pt")
 
             if plateau_scheduler is not None:
@@ -234,7 +235,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
     # if load best = True, the best model wrt. val loss is loaded and returned. if load best = False, the model state after the final iteration is returned
     if early_stopping_params['load_best']: load_latest_checkpoint(model, optimizer, scheduler, save_path)
     # save the final model in a different location than the checkpoints, to be accessed for evaluation
-    save_checkpoint(model, optimizer, scheduler, iterations, save_path+".pt")
+    if save_path is not None: save_checkpoint(model, optimizer, scheduler, iterations, save_path+".pt")
 
     return model
 

@@ -13,12 +13,12 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "train" # "generate"
+mode = "generate" # "generate"
 dx = 3
 dy = 1
 dh = 100
 
-filename = "exp5_data.csv"  # file to save training data in
+filename = "exp5_gen.csv"  # file to save training data in
 filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
 #filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
 filename_bounds = "./exp5_bounds.csv" # use different filename for train so that generate does not accidently write into it
@@ -26,10 +26,18 @@ filename_bounds = "./exp5_bounds.csv" # use different filename for train so that
 test_set_size = 10000
 dataset_size = 20000
 num_iters = 1000000
-gen_iterations = 1000 # how many parameters to generate
+gen_iterations = 10000 # how many parameters to generate
 validation_frequency = 1000
 normalize = False # use normalized data for training neural networks
+x_dist = 'gaussian'
+weight_decay = 1e-5
 
+early_stopping_params = {
+        'early_stopping_enabled': True,
+        'patience': 10,
+        'min_delta': 0.01,
+        'load_best': False
+    }
 
 if mode == "generate":
     if normalize:
@@ -47,14 +55,16 @@ if mode == "generate":
         renorm_fct = identity_rescale
 
     for i in range(gen_iterations):
-
         gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
-        bounds = datasets.gen_uniform_bounds(dx)
 
-        test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+        if x_dist == 'uniform':
+            bounds = datasets.gen_uniform_bounds(dx)
+        else:   bounds = torch.tensor([-2, 2, -2, 2, -2, 2]).reshape(dx, 2)
 
-        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
-        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+        test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
+
+        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+        ds_val = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
 
         x_norm, y_norm, x_scale, y_scale = norm_fct(ds)
         ds.X, ds.Y = x_norm, y_norm
@@ -62,7 +72,7 @@ if mode == "generate":
 
         model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters, batch_size=100,
-                         lr=config.lr_classical, use_wandb=config.wandb_enabled)
+                         lr=config.lr_classical, weight_decay=config.weight_decay_classical, use_wandb=False, save_path=None, early_stopping_params=early_stopping_params)
 
         gt_Y = gt_model(test_set.X)
         Y_pred_nn = renorm_fct(model_nn(norm_to_scale_fct(test_set.X, x_scale)), y_scale)
@@ -77,8 +87,9 @@ if mode == "generate":
             f.write(",".join(map(str, W.tolist())) + "\n")
         with open(filename_error, "a") as f:
             f.write((str(mse_nn_rel.item())) + "\n")
-        with open(filename_bounds, "a") as f:
-            f.write(",".join(map(str, bounds.flatten().tolist())) + "\n")
+        if x_dist == 'uniform':
+            with open(filename_bounds, "a") as f:
+                f.write(",".join(map(str, bounds.flatten().tolist())) + "\n")
 
 
         # visualize in normalized space
@@ -133,12 +144,7 @@ elif mode == "train":
         'num_iters': 100000,
         'batch_size': 100
     }
-    early_stopping_params = {
-        'early_stopping_enabled': True,
-        'patience': 10,
-        'min_delta': 0.01,
-        'load_best': False
-    }
+
 
 
     model = in_context_models.InContextModel(dx, dy, transformer_arch, model_name, loss, normalize=False,

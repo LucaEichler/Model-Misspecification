@@ -32,7 +32,6 @@ trials = 100           # amount of ground truth functions that the model is test
 
 def run_experiments(exp2_specs):
     for specification in exp2_specs:
-        os.makedirs(specification['save_path'] + "/models/", exist_ok=True)
         trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=specification['transformer_arch'],
                                                             x_dist='uniform', train_specs=specification['train_specs'], noise_std=0.5,
                                                             model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['early_stopping_params'], save_path=specification['save_path'])
@@ -171,15 +170,14 @@ default_specs = {
 
 specs_1 = copy.deepcopy(default_specs)
 #specs_1['train_specs']['weight_decay'] = 1e-6
-specs_1['save_path'] = './exp2_trained_in_context_models_aggregate'
+specs_1['save_path'] = './exp2_schedulfix'
 specs_1['losses'] = ['mle-dataset']
+
+
+
 #specs_1['train_specs']['min_lr'] = 1e-5
 
-specs_2 = copy.deepcopy(default_specs)
-specs_2['save_path'] = './exp2_trained_in_context_models_agg1024'
-#specs_2['train_specs']['weight_decay'] = 1e-6
-specs_2['train_specs']['dataset_size'] = 1024
-specs_2['losses'] = ['mle-dataset']
 
 
-run_experiments([specs_1, specs_2])
+
+run_experiments([specs_1])

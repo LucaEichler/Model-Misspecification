@@ -27,7 +27,7 @@ def warmup_fn(step):
         return float(step + 1) / float(max(1, 2000))
     return 1.0
 
-def save_checkpoint(model, optimizer, scheduler, wandb_id, iters, loss, filename):
+def save_checkpoint(model, optimizer, scheduler, iters, loss, wandb_id, filename):
     checkpoint = {
         "iters": iters,
         "model_state_dict": model.state_dict(),
@@ -64,15 +64,12 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()+"/"
-            if os.path.exists(model_path):  # load model if already exists
-                model.load_state_dict(torch.load(model_path, map_location=config.device))
-                trained_models.append((loss, model))
-                continue
+            os.makedirs(model_path, exist_ok=True)
 
             dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
             model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=save_path)
+                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
             trained_models.append((loss, model_trained))
 
             torch.save(model_trained.state_dict(), model_path)
@@ -124,7 +121,7 @@ def load_latest_checkpoint(model, optimizer, scheduler, dir):
     # find all checkpoint files
     checkpoints = [f for f in os.listdir(dir) if f.endswith(".pt")]
     if not checkpoints:
-        return 0  # start from scratch
+        return 0, None
 
     # get latest model by iteration number of file
     checkpoints = sorted(checkpoints, key=lambda x: int(x.split("_")[-1].split(".")[0]))
@@ -138,8 +135,10 @@ def load_latest_checkpoint(model, optimizer, scheduler, dir):
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     if scheduler:
         scheduler.load_state_dict(checkpoint["scheduler"])
-    wandb_id = checkpoint["wandb_id"]
-    return checkpoint.get("iter", 0), wandb_id
+    if "wandb_id" in checkpoint:
+        wandb_id = checkpoint["wandb_id"]
+    else: wandb_id = None
+    return checkpoint.get("iters"), wandb_id
 
 def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, save_path, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5):
     if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
@@ -155,29 +154,25 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
 
     if isinstance(model, in_context_models.InContextModel):
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-
         warmup_iters = 2000
-
         warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
             optimizer, start_factor=1.0 / warmup_iters, end_factor=1.0, total_iters=warmup_iters
         )
         cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, T_max=(iterations - warmup_iters), eta_min=min_lr
         )
-
         scheduler = torch.optim.lr_scheduler.SequentialLR(
             optimizer, schedulers=[warmup_scheduler, cosine_scheduler],
             milestones=[warmup_iters]
         )
+        plateau_scheduler = None
     else:
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)  # TODO weight decay config
         plateau_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.1, patience=5, threshold=1e-4)
         scheduler = None
 
     start_iter, wandb_id = load_latest_checkpoint(model, optimizer, scheduler, save_path)
-    iterations = iterations - start_iter
-    min_save_iters = 10000
-
+    min_save_iters = 0
 
     if use_wandb:
         if wandb_id is None:
@@ -194,7 +189,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             resume="allow"
         )
 
-    tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True)
+    tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True, initial=start_iter)
     best_val_loss = torch.tensor(float('inf'))
     for it in tqdm_batch:
         try:
@@ -203,12 +198,12 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             data_iter = iter(dataloader)  # restart for fresh epoch
             batch = next(data_iter)
 
-        loss = train_step(model, optimizer, batch, scheduler, it)
+        loss = train_step(model, optimizer, batch, scheduler, it+start_iter)
         if use_wandb:
-            wandb.log({"loss": loss.item(), "iteration": it})
+            wandb.log({"loss": loss.item(), "iteration": it+start_iter})
         tqdm_batch.set_postfix({"loss": loss.item()}) #TODO maybe switch to val loss
 
-        if it % valfreq == 0 and valset is not None:
+        if (it+start_iter) % valfreq == 0 and valset is not None:
             val_loss, val_i = 0., 0.
 
             with torch.no_grad():
@@ -218,14 +213,14 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
                     val_i += 1.
                 val_loss = val_loss/val_i
                 if use_wandb:
-                    wandb.log({"val_loss": val_loss.item(), "iteration": it})
+                    wandb.log({"val_loss": val_loss.item(), "iteration": it+start_iter})
             #recent_val_losses.append(val_loss)
             #avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                if it > min_save_iters:
+                if it+start_iter > min_save_iters and it != 0:
                     # save model with the best validation loss
-                    save_checkpoint(model, optimizer, scheduler, it, best_val_loss, wandb_id, save_path+"_"+it+".pt")
+                    save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"_"+str(it+start_iter)+".pt")
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)

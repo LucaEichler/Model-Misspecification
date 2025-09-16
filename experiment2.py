@@ -18,7 +18,7 @@ seed.set_seed(0)
 
 dx = 3
 dy = 1
-plot=True
+plot=False
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -171,13 +171,14 @@ default_specs = {
 
 specs_1 = copy.deepcopy(default_specs)
 #specs_1['train_specs']['weight_decay'] = 1e-6
-specs_1['save_path'] = './exp2_higher_final_lr'
+specs_1['save_path'] = './exp2_trained_in_context_models_aggregate'
 specs_1['losses'] = ['mle-dataset']
-specs_1['train_specs']['min_lr'] = 1e-5
+#specs_1['train_specs']['min_lr'] = 1e-5
 
 specs_2 = copy.deepcopy(default_specs)
-specs_2['save_path'] = './exp2_lower_weight_decay'
-specs_2['train_specs']['weight_decay'] = 1e-6
+specs_2['save_path'] = './exp2_trained_in_context_models_agg1024'
+#specs_2['train_specs']['weight_decay'] = 1e-6
+specs_2['train_specs']['dataset_size'] = 1024
 specs_2['losses'] = ['mle-dataset']
 
 

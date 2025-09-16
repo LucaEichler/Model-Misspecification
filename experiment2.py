@@ -162,7 +162,7 @@ default_specs = {
         'early_stopping_enabled': False,
         'patience': 10,
         'min_delta': 0.01,
-        'load_best': False
+        'load_best': True
     },
     'losses': losses,
     'save_path': './exp2_default'

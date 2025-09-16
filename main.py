@@ -72,8 +72,6 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
                   lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
             trained_models.append((loss, model_trained))
 
-            torch.save(model_trained.state_dict(), model_path)
-
     return trained_models
 
 

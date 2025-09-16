@@ -66,8 +66,9 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
             model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()
 
             if os.path.exists(model_path+".pt"):    # this path only exists when the train loop for a model was fully finished
-                checkpoint = torch.load(model_path+".pt")   # in this case, we load the model and skip training
-                model_trained = model.load_state_dict(checkpoint["model_state_dict"])
+                checkpoint = torch.load(model_path+".pt", map_location=config.device)   # in this case, we load the model and skip training
+                model.load_state_dict(checkpoint["model_state_dict"])
+                model_trained = model
             else:
                 os.makedirs(model_path + "/", exist_ok=True)
 

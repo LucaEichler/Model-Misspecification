@@ -18,7 +18,7 @@ seed.set_seed(0)
 
 dx = 3
 dy = 1
-plot=False
+plot=True
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -169,14 +169,9 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-#specs_1['train_specs']['weight_decay'] = 1e-6
-specs_1['save_path'] = './exp2_schedulfix'
+specs_1['save_path'] = './exp2_iteration_test_default'
 specs_1['losses'] = ['mle-dataset']
-
-
-
-#specs_1['train_specs']['min_lr'] = 1e-5
-
+specs_1['train_specs']['num_iters'] = 1000000
 
 
 

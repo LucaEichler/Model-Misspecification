@@ -171,7 +171,7 @@ default_specs = {
 specs_1 = copy.deepcopy(default_specs)
 specs_1['save_path'] = './exp2_iteration_test_default'
 specs_1['losses'] = ['mle-dataset']
-specs_1['train_specs']['num_iters'] = 1000000
+specs_1['train_specs']['num_iters'] = 10000000
 
 
 

@@ -9,7 +9,7 @@
 
 wandb_enabled: True
 wandb_project_name: "Model-Misspecification - Exp 2"
-wandb_exp_name: "Max iterations"
+wandb_exp_name: "Max iterations - higher lr"
 
 
 device: "cuda"

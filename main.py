@@ -63,17 +63,21 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
-            model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()+"/"
-            os.makedirs(model_path, exist_ok=True)
+            model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()
 
-            dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
+            if os.path.exists(model_path+".pt"):    # this path only exists when the train loop for a model was fully finished
+                checkpoint = torch.load(model_path+".pt")   # in this case, we load the model and skip training
+                model_trained = model.load_state_dict(checkpoint["model_state_dict"])
+            else:
+                os.makedirs(model_path + "/", exist_ok=True)
+
+                dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+                valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+                model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
+                      lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
             trained_models.append((loss, model_trained))
 
-    return trained_models
-
+            return trained_models
 
 
 def train_classical_models(dx, dy, dh, dataset_size, num_iters):
@@ -115,7 +119,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
 
-def load_latest_checkpoint(model, optimizer, scheduler, dir):
+def load_latest_checkpoint(model, optimizer=None, scheduler=None, dir="defaultdir"):
     # find all checkpoint files
     checkpoints = [f for f in os.listdir(dir) if f.endswith(".pt")]
     if not checkpoints:
@@ -187,7 +191,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             resume="allow"
         )
 
-    tqdm_batch = tqdm(range(iterations), unit="batch", ncols=100, leave=True, initial=start_iter)
+    tqdm_batch = tqdm(range(start_iter, iterations), unit="batch", ncols=100, leave=True, initial=start_iter)
     best_val_loss = torch.tensor(float('inf'))
     for it in tqdm_batch:
         try:
@@ -212,26 +216,24 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
                 val_loss = val_loss/val_i
                 if use_wandb:
                     wandb.log({"val_loss": val_loss.item(), "iteration": it+start_iter})
-            #recent_val_losses.append(val_loss)
-            #avg_val_loss = sum(recent_val_losses) / len(recent_val_losses)
-            if val_loss < best_val_loss:
+            if val_loss < best_val_loss:    # execute if validation loss reaches a new best
                 best_val_loss = val_loss
-                if it+start_iter > min_save_iters and it != 0:
-                    # save model with the best validation loss
-                    save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"_"+str(it+start_iter)+".pt")
-            if (it + start_iter) % 50000 == 0:
+                if it+start_iter > min_save_iters and it != 0:  # save if some minimum threshold of iterations has been reached
+                    save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"/_"+str(it+start_iter)+".pt")
+            if (it + start_iter) % 50000 == 0:  # every 50000 steps, save a backup file so that training may be continued from that point
                 save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
-                                save_path + "backup" + ".pt")
+                                save_path + "/backup" + ".pt")
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)
             if early_stopping_params['early_stopping_enabled'] and early_stopping(val_loss, best_val_loss):
                 break
-
     wandb.finish()
 
-    # load best model configuration
+    # if load best = True, the best model wrt. val loss is loaded and returned. if load best = False, the model state after the final iteration is returned
     if early_stopping_params['load_best']: load_latest_checkpoint(model, optimizer, scheduler, save_path)
+    # save the final model in a different location than the checkpoints, to be accessed for evaluation
+    save_checkpoint(model, optimizer, scheduler, iterations, save_path+".pt")
 
     return model
 

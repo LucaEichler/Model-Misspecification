@@ -8,8 +8,8 @@
 # ====================================================================================
 
 wandb_enabled: True
-wandb_project_name: "Model-Misspecification"
-wandb_exp_name: "Experiment 2 - 100k iters, 3M params, 1024 dataset size"
+wandb_project_name: "Model-Misspecification - Exp 2"
+wandb_exp_name: "Max iterations"
 
 
 device: "cuda"

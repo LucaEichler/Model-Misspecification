@@ -224,7 +224,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
                     if save_path is not None: save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"/_"+str(it+start_iter)+".pt")
             if (it + start_iter) % 50000 == 0:  # every 50000 steps, save a backup file so that training may be continued from that point
                 if save_path is not None: save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
-                                save_path + "/backup" + ".pt")
+                                save_path + "/backup_0" + ".pt")
 
             if plateau_scheduler is not None:
                 plateau_scheduler.step(val_loss)

@@ -65,7 +65,8 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
         valset = datasets.ContextDataset(10000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
-            model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()
+            model_name = loss + " " + model.eval_model._get_name()
+            model_path = save_path+"/models/"+model_name
 
             if os.path.exists(model_path+".pt"):    # this path only exists when the train loop for a model was fully finished
                 checkpoint = torch.load(model_path+".pt", map_location=config.device)   # in this case, we load the model and skip training
@@ -74,7 +75,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
             else:
                 os.makedirs(model_path + "/", exist_ok=True)
                 model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                      lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
+                      lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path, wandb_name=model_name)
             trained_models.append((loss, model_trained))
 
             return trained_models
@@ -143,7 +144,7 @@ def load_latest_checkpoint(model, optimizer=None, scheduler=None, dir="defaultdi
     else: wandb_id = None
     return checkpoint.get("iters"), wandb_id
 
-def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, save_path, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5):
+def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, save_path, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5, wandb_name="Some Experient"):
     if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
 
     model.to(device)
@@ -182,7 +183,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             wandb_id = str(uuid.uuid4())
         wandb.init(
             project=config.wandb_project_name,
-            name=config.wandb_exp_name,
+            name=wandb_name,
             config={
                 "model_name": model._get_name(),
                 "iterations": iterations,

@@ -18,7 +18,7 @@ seed.set_seed(0)
 
 dx = 3
 dy = 1
-plot=True
+plot=False
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),

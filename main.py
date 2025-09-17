@@ -175,7 +175,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
         scheduler = None
 
     start_iter, wandb_id = load_latest_checkpoint(model, optimizer, scheduler, save_path)
-    min_save_iters = 100000
+    min_save_iters = 50000
 
     if use_wandb:
         if wandb_id is None:

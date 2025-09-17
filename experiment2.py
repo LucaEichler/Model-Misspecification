@@ -155,7 +155,7 @@ default_specs = {
         'weight_decay': 1e-5,
         'dataset_amount': 100000,
         'dataset_size': 128,
-        'num_iters': 100000,
+        'num_iters': 1000000,
         'batch_size': 100
     },
     'early_stopping_params': {
@@ -169,10 +169,7 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-specs_1['save_path'] = './exp2_iteration_default'
-specs_1['losses'] = ['mle-dataset']
-specs_1['train_specs']['num_iters'] = 10000000
-
+specs_1['save_path'] = './exp2_official_run'
 
 
 run_experiments([specs_1])

@@ -62,7 +62,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
         dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-        valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+        valset = datasets.ContextDataset(10000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()

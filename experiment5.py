@@ -18,15 +18,15 @@ dx = 3
 dy = 1
 dh = 100
 
-filename = "exp5_gen.csv"  # file to save training data in
-filename_error = "./exp5_mse.csv" # file to save the MSE ("data quality") of the parameters
+filename = "exp5_params_gauss.csv"  # file to save training data in
+filename_error = "./exp5_mse_gauss.csv" # file to save the MSE ("data quality") of the parameters
 #filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
-filename_bounds = "./exp5_bounds.csv" # use different filename for train so that generate does not accidently write into it
+filename_bounds = "./exp5_bounds1.csv" # use different filename for train so that generate does not accidently write into it
 
 test_set_size = 10000
 dataset_size = 20000
 num_iters = 1000000
-gen_iterations = 10000 # how many parameters to generate
+gen_iterations = 100000 # how many parameters to generate
 validation_frequency = 1000
 normalize = False # use normalized data for training neural networks
 x_dist = 'gaussian'

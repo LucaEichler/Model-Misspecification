@@ -61,6 +61,8 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
     for model_spec in model_specs:
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
+        dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+        valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
             model_path = save_path+"/models/"+loss + " " + model.eval_model._get_name()
@@ -71,9 +73,6 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
                 model_trained = model
             else:
                 os.makedirs(model_path + "/", exist_ok=True)
-
-                dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-                valset = datasets.ContextDataset(1000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
                 model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
                       lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path)
             trained_models.append((loss, model_trained))
@@ -176,7 +175,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
         scheduler = None
 
     start_iter, wandb_id = load_latest_checkpoint(model, optimizer, scheduler, save_path)
-    min_save_iters = 0
+    min_save_iters = 100000
 
     if use_wandb:
         if wandb_id is None:

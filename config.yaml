@@ -8,8 +8,8 @@
 # ====================================================================================
 
 wandb_enabled: True
-wandb_project_name: "Model-Misspecification - Exp 2"
-wandb_exp_name: "Max iterations"
+wandb_project_name: "Experiment 2 Official Run"
+wandb_exp_name: "Default"
 
 
 device: "cuda"

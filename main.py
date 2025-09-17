@@ -78,7 +78,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise
                       lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path, wandb_name=model_name)
             trained_models.append((loss, model_trained))
 
-            return trained_models
+    return trained_models
 
 
 def train_classical_models(dx, dy, dh, dataset_size, num_iters):
@@ -235,7 +235,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
     # if load best = True, the best model wrt. val loss is loaded and returned. if load best = False, the model state after the final iteration is returned
     if early_stopping_params['load_best']: load_latest_checkpoint(model, optimizer, scheduler, save_path)
     # save the final model in a different location than the checkpoints, to be accessed for evaluation
-    if save_path is not None: save_checkpoint(model, optimizer, scheduler, iterations, save_path+".pt")
+    if save_path is not None: save_checkpoint(model, optimizer, scheduler, iterations, best_val_loss, wandb_id, save_path+".pt")
 
     return model
 

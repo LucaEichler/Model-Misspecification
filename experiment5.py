@@ -32,6 +32,7 @@ validation_frequency = 1000
 normalize = False # use normalized data for training neural networks
 x_dist = 'gaussian'
 weight_decay = 1e-5
+lr = 0.01
 
 early_stopping_params = {
         'early_stopping_enabled': True,
@@ -73,7 +74,7 @@ if mode == "generate":
 
         model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters, batch_size=100,
-                         lr=config.lr_classical, weight_decay=config.weight_decay_classical, use_wandb=False, save_path=None, early_stopping_params=early_stopping_params)
+                         lr=lr, weight_decay=config.weight_decay_classical, use_wandb=False, save_path=None, early_stopping_params=early_stopping_params)
 
         gt_Y = gt_model(test_set.X)
         Y_pred_nn = renorm_fct(model_nn(norm_to_scale_fct(test_set.X, x_scale)), y_scale)

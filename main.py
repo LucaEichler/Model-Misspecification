@@ -54,19 +54,19 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model_specs, losses, early_stopping_params, noise_std=None, datasets=None, save_path="./default_save_path"):
+def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model_specs, losses, early_stopping_params, noise_std=None, ds=None, save_path="./default_save_path"):
 
     trained_models = []
 
     for model_spec in model_specs:
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
-        if datasets is not None:
-            dataset = datasets[0]
-            valset = datasets[1]
+        if ds is not None:
+            dataset = ds[0]
+            valset = ds[1]
         else:
             dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            valset = datasets.ContextDataset(10000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1]) #TODO valset size in config
+            valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1]) #TODO valset size in config
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, train_specs['normalize'], **model_spec_training)  #TODO: Convert into config
             model_name = loss + " " + model.eval_model._get_name()
@@ -85,29 +85,31 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model
     return trained_models
 
 
-def train_classical_models(dx, dy, dh, dataset_size, num_iters):
+def train_classical_models(dx, dy, dh, x_dist, specs):
+    dataset_size = specs['dataset_size']
+
     # Create underlying ground truth models and datasets for training classical models
     # Also will be the evaluation data used later
     linear_datasets = []
     linear_2_datasets = []
     nonlinear_datasets = []
 
-    tries = config.test_trials # How many datasets to test on
+    tries = 10 # How many datasets to test on
 
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)
-        ds_linear = datasets.PointDataset(dataset_size, gt_linear)
-        val_ds_linear = datasets.PointDataset(dataset_size, gt_linear)
+        ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist)
+        val_ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist)
         linear = (gt_linear, ds_linear, [], val_ds_linear)
 
         gt_linear_2 = Linear(dx, dy, order=2)
-        ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
-        val_ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2)
+        ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist)
+        val_ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist)
         linear_2 = (gt_linear_2, ds_linear_2, [], val_ds_linear_2)
 
         gt_nonlinear = NonLinear(dx, dy, dh)
-        ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
-        val_ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear)
+        ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist)
+        val_ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist)
         nonlinear = (gt_nonlinear, ds_nonlinear, [], val_ds_nonlinear)
 
         linear_datasets.append(linear)
@@ -119,7 +121,7 @@ def train_classical_models(dx, dy, dh, dataset_size, num_iters):
             for model in [Linear(dx, dy, order=1), Linear(dx, dy, order=2), NonLinear(dx, dy, dh),
                           LinearVariational(dx, dy, order=1), LinearVariational(dx, dy, order=2),
                           NonLinearVariational(dx, dy, dh)]:
-                model_trained = train(model, dataset[1], valset=dataset[3], valfreq=200, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+                model_trained = train(model, dataset[1], valset=dataset[3], valfreq=1000, weight_decay=specs['weight_decay'], iterations=specs['num_iters'], batch_size=specs['batch_size'], lr=specs['lr'], use_wandb=False, save_path=None, early_stopping_params=specs['early_stopping_params'])
                 dataset[2].append(model_trained)
 
     return linear_datasets, linear_2_datasets, nonlinear_datasets
@@ -252,7 +254,7 @@ def train_step(model, optimizer, batch, scheduler, it):
 
     loss = model.compute_loss(batch)
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) #TODO test out if can be removed
     optimizer.step()
     if scheduler is not None:
         scheduler.step()
@@ -318,12 +320,15 @@ amortized_specs = {
             },
         'train_specs':
             {
+                'dataset_size': 128,
                 'lr': 0.0001,
                 'min_lr': 1e-6,
                 'weight_decay': 1e-5,
                 'dataset_amount': 10000,
                 'num_iters': 100000,
-                'batch_size': 100
+                'batch_size': 100,
+                'valset_size': 10000,
+                'normalize': False
             },
         'early_stopping_params': {
             'early_stopping_enabled': False,
@@ -333,6 +338,9 @@ amortized_specs = {
         },
 }
 classical_specs = {
+    'dataset_size': 128,
+    'weight_decay': 1e-5,
+    'lr': 0.01,
     'num_iters': 100000,
     'early_stopping_params': {
             'early_stopping_enabled': True,
@@ -340,9 +348,9 @@ classical_specs = {
             'min_delta': 0.01,
             'load_best': False
         },
+    'batch_size': 100
 }
 default_specs = {
-    'dataset_size': 128,
     'losses': ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl'],
     'save_path': './exp1_default',
     'dh': 100,
@@ -352,69 +360,78 @@ default_specs = {
 }
 
 
+
+def run_experiments(exp1_specs):
+    for specification in exp1_specs:
+        save_path = specification['save_path']
+
+        model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
+        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian')
+        trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'])
+
+        #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
+        X = torch.randn(128).unsqueeze(1).to(device) #TODO 128 points is a bit few, increase
+
+        mse_results = []
+        mse_params_results = []
+        for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
+            j=1
+            for elem in model_type:
+                gt = elem[0]
+                classical_models_trained = elem[2]
+
+                Y = gt(X) # ground truth output to compare with
+
+                for i in range(0, len(classical_models_trained)):
+
+                    # we only can compare the parameters if there is no misspecification
+                    if isinstance(classical_models_trained[i], type(gt)):
+                        if not isinstance(classical_models_trained[i], Linear) or classical_models_trained[i].order == gt.order:
+                            mse_params = ((classical_models_trained[i].get_W() - gt.get_W())**2).mean()
+                            mse_params_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(),
+                                                'mse_params': mse_params.item()})
+
+                    classical_models_trained[i].eval()
+                    Y_pred = classical_models_trained[i](X)
+                    mse = torch.mean((Y-Y_pred)**2)
+                    mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
+                    #eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
+
+                for trained_in_context_model in trained_in_context_models:
+
+                    Y_pred, means_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
+
+                    if isinstance(trained_in_context_model[1].eval_model, type(gt)):
+                        if not isinstance(trained_in_context_model[1].eval_model, Linear) or trained_in_context_model[1].eval_model.order == gt.order:
+                            mse_params = ((means_pred.squeeze(0) - gt.get_W())**2).mean()
+                            mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
+
+                    #eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
+
+                    mse = torch.mean((Y-Y_pred)**2)
+
+                    mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
+                j=j+1
+        df = pd.DataFrame(mse_results)
+        df_params = pd.DataFrame(mse_params_results)
+
+        # average over similar columns to compute mean performance across datasets
+        df_avg = df.groupby(['gt', 'model_name'])['mse'].agg(
+            mean_mse='mean',
+            std_mse='std',
+            se=se,
+            ci=ci95
+        ).reset_index()
+        df_avg_params = df_params.groupby(['gt', 'model_name'], as_index=False)['mse_params'].mean()
+
+        # Save to disk
+        df_avg.to_csv(save_path+"/experiment1_results.csv", index=False)
+        df_avg_params.to_csv(save_path+"/experiment1_params_results.csv", index=False)
+
+
+
 if __name__ == "__main__":
 
     specification = default_specs
-    model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
-    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], dataset_size=specification['dataset_size'], num_iters=specification['classical_model_specs']['num_iters'], )
-    trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'])
-
-    #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
-    X = torch.randn(128).unsqueeze(1).to(device)
-
-    mse_results = []
-    mse_params_results = []
-    for model_type in [linear_datasets, linear_2_datasets, nonlinear_datasets]:
-        j=1
-        for elem in model_type:
-            gt = elem[0]
-            classical_models_trained = elem[2]
-
-            Y = gt(X) # ground truth output to compare with
-
-            for i in range(0, len(classical_models_trained)):
-
-                # we only can compare the parameters if there is no misspecification
-                if isinstance(classical_models_trained[i], type(gt)):
-                    if not isinstance(classical_models_trained[i], Linear) or classical_models_trained[i].order == gt.order:
-                        mse_params = ((classical_models_trained[i].get_W() - gt.get_W())**2).mean()
-                        mse_params_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(),
-                                            'mse_params': mse_params.item()})
-
-                classical_models_trained[i].eval()
-                Y_pred = classical_models_trained[i](X)
-                mse = torch.mean((Y-Y_pred)**2)
-                mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
-                #eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
-
-            for trained_in_context_model in trained_in_context_models:
-
-                Y_pred, means_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
-
-                if isinstance(trained_in_context_model[1].eval_model, type(gt)):
-                    if not isinstance(trained_in_context_model[1].eval_model, Linear) or trained_in_context_model[1].eval_model.order == gt.order:
-                        mse_params = ((means_pred.squeeze(0) - gt.get_W())**2).mean()
-                        mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
-
-                #eval_plot(gt._get_name()+" "+str(j), trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt, X, Y_pred)
-
-                mse = torch.mean((Y-Y_pred)**2)
-
-                mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
-            j=j+1
-    df = pd.DataFrame(mse_results)
-    df_params = pd.DataFrame(mse_params_results)
-
-    # average over similar columns to compute mean performance across datasets
-    df_avg = df.groupby(['gt', 'model_name'])['mse'].agg(
-        mean_mse='mean',
-        std_mse='std',
-        se=se,
-        ci=ci95
-    ).reset_index()
-    df_avg_params = df_params.groupby(['gt', 'model_name'], as_index=False)['mse_params'].mean()
-
-    # Save to disk
-    df_avg.to_csv("experiment1_results.csv", index=False)
-    df_avg_params.to_csv("experiment1_params_results.csv", index=False)
+    run_experiments([specification])
 

@@ -157,6 +157,7 @@ default_specs = {
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
+        'valset_size': 10000,
         'normalize': True
     },
     'early_stopping_params': {

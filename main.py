@@ -366,8 +366,8 @@ def run_experiments(exp1_specs):
         save_path = specification['save_path']
 
         model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
-        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian')
         trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'])
+        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian')
 
         #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
         X = torch.randn(128).unsqueeze(1).to(device) #TODO 128 points is a bit few, increase

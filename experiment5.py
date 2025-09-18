@@ -7,13 +7,14 @@ import config
 import datasets
 import in_context_models
 import main
+from main import train_in_context_models
 import seed
 from classical_models import Linear, NonLinear
 from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "generate" # "generate"
+mode = "train" # "generate"
 dx = 3
 dy = 1
 dh = 100
@@ -114,45 +115,63 @@ if mode == "generate":
 
 
 elif mode == "train":
-    bounds = np.loadtxt(filename_bounds, delimiter=",")
-    bounds = torch.tensor(bounds, dtype=torch.float32).reshape(-1, dx, 2)
+    #bounds = np.loadtxt(filename_bounds, delimiter=",")
+    #bounds = torch.tensor(bounds, dtype=torch.float32).reshape(-1, dx, 2)
 
     data = np.loadtxt(filename, delimiter=",")
     tensors = torch.tensor(data, dtype=torch.float32)
-    train_data = tensors[0:8000, :]
-    train_bounds = bounds[0:8000, :, :]
-    val_data = tensors[8000:9000, :]
-    val_bounds = bounds[8000:9000,:, :]
-    loss = "mle-params"
+    s = tensors.size(0)
+    train_data = tensors[0:int(s*0.9), :]
+    #train_bounds = bounds[0:8000, :, :]
+    val_data = tensors[int(s*0.9):s, :]
+    #val_bounds = bounds[8000:9000,:, :]
 
-    model_name = 'NonLinear'
-    model_kwargs = {'dh': config.dh}
+
     batch_size = config.batch_size_in_context
 
-    transformer_arch = {
+    specification = {
+        'transformer_arch': {
         'dT': 256,
         'num_heads': 4,
         'num_layers': 4,
         'output': 'attention-pool'
-    }
-    train_specs = {
+    },
+        'train_specs': {
         'lr': 0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
         'dataset_amount': 100000,
         'dataset_size': 128,
         'num_iters': 100000,
-        'batch_size': 100
+        'batch_size': 100,
+        'normalize': False
+    },
+        'save_path': './exp5_default',
+        'losses': ['mle-dataset'],
+        'early_stopping_params': {
+            'early_stopping_enabled': False,
+            'patience': 10,
+            'min_delta': 0.01,
+            'load_best': True
+        },
     }
 
+    model_name = 'NonLinear'
+    model_kwargs = {'dh': config.dh}
+    model_specs = [(model_name, model_kwargs)]
+
+    dataset = datasets.ContextDataset(train_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', params_list=train_data, **model_kwargs)
+    valset = datasets.ContextDataset(val_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=val_data, **model_kwargs)
 
 
-    model = in_context_models.InContextModel(dx, dy, transformer_arch, model_name, loss, normalize=False,
-                                             **model_kwargs)
-    dataset = datasets.ContextDataset(train_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=train_data, bounds=train_bounds, **model_kwargs)
-    valset = datasets.ContextDataset(val_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=val_data, bounds=val_bounds, **model_kwargs)
-    model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                  lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'])
+    trained_in_context_models = train_in_context_models(dx = dx, dy = dy, transformer_arch = specification['transformer_arch'],
+                                 x_dist = 'uniform', train_specs = specification['train_specs'],
+                                 model_specs = model_specs, losses = specification['losses'], early_stopping_params = specification[
+        'early_stopping_params'], save_path = specification['save_path'], datasets = (dataset, valset))
+
+
+    _, model_trained = trained_in_context_models[0]
+
 
     tries = 10
     for i in range(tries):
@@ -179,7 +198,7 @@ elif mode == "train":
                                                                                           lambd=config.lambda_mle)
         Ypred_cf = evalmodel.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
 
-        main.eval_plot(gt_model._get_name() + " " + str(i), loss + " " + model_trained.eval_model._get_name(),
+        main.eval_plot(gt_model._get_name() + " " + str(i), model_trained.eval_model._get_name(),
                        gt_model, Xplot[:, 0], Y_predplot.squeeze(0), Ypred_cf)
 
 

@@ -156,7 +156,8 @@ default_specs = {
         'dataset_amount': 100000,
         'dataset_size': 128,
         'num_iters': 1000000,
-        'batch_size': 100
+        'batch_size': 100,
+        'normalize': True
     },
     'early_stopping_params': {
         'early_stopping_enabled': False,
@@ -169,7 +170,7 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-specs_1['save_path'] = './exp2_official_run'
+specs_1['save_path'] = './exp2_official_run2'
 
 
 run_experiments([specs_1])

@@ -54,17 +54,21 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, noise_std, model_specs, losses, early_stopping_params, save_path="./default_save_path"):
+def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model_specs, losses, early_stopping_params, noise_std=None, datasets=None, save_path="./default_save_path"):
 
     trained_models = []
 
     for model_spec in model_specs:
         model_spec_training = model_spec[1].copy()  # these 2 lines ensure that the amortized model does not
         model_spec_training.pop('feature_sampling_enabled', None)  # internally sample sparse features as is done for data generation
-        dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-        valset = datasets.ContextDataset(10000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+        if datasets is not None:
+            dataset = datasets[0]
+            valset = datasets[1]
+        else:
+            dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
+            valset = datasets.ContextDataset(10000, train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1]) #TODO valset size in config
         for loss in losses:
-            model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, **model_spec_training)  #TODO: Convert into config
+            model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, train_specs['normalize'], **model_spec_training)  #TODO: Convert into config
             model_name = loss + " " + model.eval_model._get_name()
             model_path = save_path+"/models/"+model_name
 
@@ -303,11 +307,57 @@ def ci95(x):
     t_val = t.ppf(0.975, df=n - 1)
     return t_val * se_val
 
+
+amortized_specs = {
+        'transformer_arch':
+            {
+                'dT': 256,
+                'num_heads': 4,
+                'num_layers': 4,
+                'output': 'attention-pool'
+            },
+        'train_specs':
+            {
+                'lr': 0.0001,
+                'min_lr': 1e-6,
+                'weight_decay': 1e-5,
+                'dataset_amount': 10000,
+                'num_iters': 100000,
+                'batch_size': 100
+            },
+        'early_stopping_params': {
+            'early_stopping_enabled': False,
+            'patience': 10,
+            'min_delta': 0.01,
+            'load_best': True
+        },
+}
+classical_specs = {
+    'num_iters': 100000,
+    'early_stopping_params': {
+            'early_stopping_enabled': True,
+            'patience': 10,
+            'min_delta': 0.01,
+            'load_best': False
+        },
+}
+default_specs = {
+    'dataset_size': 128,
+    'losses': ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl'],
+    'save_path': './exp1_default',
+    'dh': 100,
+    'classical_model_specs': classical_specs,
+    'amortized_model_specs': amortized_specs,
+    'noise_std': 0.5
+}
+
+
 if __name__ == "__main__":
 
-    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=config.dh, dataset_size=dataset_size_classical, num_iters=config.num_iters_classical)
-    trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', dataset_amount=config.dataset_amount,
-                            dataset_size=config.dataset_size_in_context, batch_size=config.batch_size_in_context,  num_iters=config.num_iters_in_context, noise_std=config.noise_std, compute_closed_form_mle=False, model_specs=[('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': config.dh})])
+    specification = default_specs
+    model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
+    linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], dataset_size=specification['dataset_size'], num_iters=specification['classical_model_specs']['num_iters'], )
+    trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'])
 
     #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
     X = torch.randn(128).unsqueeze(1).to(device)

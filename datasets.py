@@ -101,9 +101,10 @@ class ContextDataset(Dataset):
         with torch.no_grad():
             # Create 'size' amount of datasets which will make up the big context dataset
             for i in range(size):
-                if params_list is not None and bounds is not None: # add params to kwargs
+                if params_list is not None:
+                    if bounds is not None:
+                        bound = bounds[i, :, :]
                     W = params_list[i, :]
-                    bound = bounds[i, :, :]
                     #TODO store and load bounds
 
                 # Create new model which will be underlying this dataset

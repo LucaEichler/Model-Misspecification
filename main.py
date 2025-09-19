@@ -54,7 +54,7 @@ def count_parameters(model):
     return total, trainable
 
 
-def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model_specs, losses, early_stopping_params, noise_std=None, ds=None, save_path="./default_save_path"):
+def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model_specs, losses, early_stopping_params, noise_std=None, ds=None, save_path="./default_save_path", save_all = True):
 
     trained_models = []
 
@@ -79,7 +79,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model
             else:
                 os.makedirs(model_path + "/", exist_ok=True)
                 model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],
-                      lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path, wandb_name=model_name)
+                      lr=train_specs['lr'], weight_decay=train_specs['weight_decay'], early_stopping_params=early_stopping_params, use_wandb=config.wandb_enabled, min_lr = train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
             trained_models.append((loss, model_trained))
 
     return trained_models
@@ -150,7 +150,8 @@ def load_latest_checkpoint(model, optimizer=None, scheduler=None, dir="defaultdi
     else: wandb_id = None
     return checkpoint.get("iters"), wandb_id
 
-def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, save_path, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5, wandb_name="Some Experient"):
+def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_decay, save_path, use_wandb = False, early_stopping_params=config.early_stopping_params, min_lr=1e-5, wandb_name="Some Experient",
+          save_all=True):
     if isinstance(model, NonLinear): model._init_weights_training() # TODO ensure good weight init for all models, better code
 
     model.to(device)
@@ -182,7 +183,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
         scheduler = None
 
     start_iter, wandb_id = load_latest_checkpoint(model, optimizer, scheduler, save_path)
-    min_save_iters = 50000
+    min_save_iters = 0
 
     if use_wandb:
         if wandb_id is None:
@@ -226,8 +227,10 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
                     wandb.log({"val_loss": val_loss.item(), "iteration": it+start_iter})
             if val_loss < best_val_loss:    # execute if validation loss reaches a new best
                 best_val_loss = val_loss
-                if it+start_iter > min_save_iters and it != 0:  # save if some minimum threshold of iterations has been reached
-                    if save_path is not None: save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, save_path+"/_"+str(it+start_iter)+".pt")
+                if it+start_iter >= min_save_iters and it != 0:  # save if some minimum threshold of iterations has been reached
+                    if save_path is not None:
+                        path = save_path+"/_"+str(it+start_iter)+".pt" if save_all else save_path + "/best_1.pt"
+                        save_checkpoint(model, optimizer, scheduler, it+start_iter, best_val_loss, wandb_id, path)
             if (it + start_iter) % 50000 == 0:  # every 50000 steps, save a backup file so that training may be continued from that point
                 if save_path is not None: save_checkpoint(model, optimizer, scheduler, it + start_iter, best_val_loss, wandb_id,
                                 save_path + "/backup_0" + ".pt")
@@ -324,7 +327,7 @@ amortized_specs = {
                 'lr': 0.0001,
                 'min_lr': 1e-6,
                 'weight_decay': 1e-5,
-                'dataset_amount': 10000,
+                'dataset_amount': 100000,
                 'num_iters': 100000,
                 'batch_size': 100,
                 'valset_size': 10000,
@@ -366,7 +369,7 @@ def run_experiments(exp1_specs):
         save_path = specification['save_path']
 
         model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
-        trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'])
+        trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'], save_all=False)
         linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian')
 
         #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
@@ -433,5 +436,6 @@ def run_experiments(exp1_specs):
 if __name__ == "__main__":
 
     specification = default_specs
+    specification['save_path'] = "./exp1"
     run_experiments([specification])
 

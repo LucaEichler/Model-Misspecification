@@ -8,7 +8,7 @@
 # ====================================================================================
 
 wandb_enabled: True
-wandb_project_name: "Experiment 1 Re Run"
+wandb_project_name: "Experiment 1 Re Re Run"
 wandb_exp_name: "Default"
 
 

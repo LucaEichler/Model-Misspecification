@@ -35,7 +35,8 @@ with open(config_path) as f:
     early_stopping_params = {
         'early_stopping_enabled': early_stopping_enabled,
         'patience': early_stopping_patience,
-        'min_delta': early_stopping_delta
+        'min_delta': early_stopping_delta,
+        'load_best': False
     }
 
     load_best_model = config.get("load_best_model")

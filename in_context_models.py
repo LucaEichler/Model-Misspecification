@@ -311,7 +311,7 @@ class InContextModel(nn.Module):
         if self.loss in ['backward-kl', 'mle-dataset']:
             mse = torch.mean(torch.sum((datasets_in_Y - model_predictions) ** 2, dim=1), dim=0)
 
-        if self.loss == 'backward-kl':
+        if self.loss == 'backward-kl': # TODO: add division by noise var!
             return mse + torch.sum(torch.exp(logvariances)-logvariances-1+means**2, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, model_predictions
 
         if self.loss == 'mle-dataset':

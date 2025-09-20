@@ -126,19 +126,24 @@ class NonLinearVariational(NonLinear):
         if kwargs.get('plot', False):
             return super().forward(x)
 
-        eps1w = torch.randn_like(self.linear1.weight)
-        eps1b = torch.randn_like(self.linear1.bias)
-
-        eps2w = torch.randn_like(self.linear2.weight)
-        eps2b = torch.randn_like(self.linear2.bias)
-
         if self.training:
+            samples = 1
+        else: samples = 25
+
+        stochastic_outputs = []
+
+        for i in range(samples):
+            eps1w = torch.randn_like(self.linear1.weight)
+            eps1b = torch.randn_like(self.linear1.bias)
+
+            eps2w = torch.randn_like(self.linear2.weight)
+            eps2b = torch.randn_like(self.linear2.bias)
+
             layer1out = self.relu(self.linear1(x) + torch.matmul(x, (eps1w * torch.exp(self.logvar)).T) + eps1b * torch.exp(self.logvar))
             layer2out = self.linear2(layer1out) + torch.matmul(layer1out, (eps2w * torch.exp(self.logvar)).T) + eps2b * torch.exp(self.logvar)
-        else:
-            layer1out = self.relu(self.linear1(x))
-            layer2out = self.linear2(layer1out)
-        return layer2out
+            stochastic_outputs.append(layer2out)
+        if self.training: return layer2out
+        else: return torch.stack(stochastic_outputs, dim=0).mean(0)
 
     def compute_loss(self, batch):
         X, Y = batch
@@ -146,12 +151,10 @@ class NonLinearVariational(NonLinear):
         prediction = self(X)
         L = self.dx * self.dh + self.dh + self.dh * self.dy + self.dy
         if self.training:
-            kl_div = 0.5 * ((L * (torch.exp(self.logvar) - self.logvar - 1)) +
-                            torch.sum(self.linear1.weight ** 2) + torch.sum(self.linear1.bias ** 2) +
-                            torch.sum(self.linear2.weight ** 2) + torch.sum(self.linear2.bias ** 2))
+            kl_div = (0.5 * ((L *(torch.exp(self.logvar) - self.logvar - 1)) + torch.sum(self.get_W()**2)))
         else: kl_div = 0.
-        sse = torch.sum((prediction-Y)**2)
-        sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
+        noise_var = 0.25            # TODO make this configurable
+        sse = (1./noise_var)*0.5 * torch.sum((prediction-Y)**2)*(1/0.5)
 
         return sse + kl_div
 
@@ -323,9 +326,8 @@ class Linear(nn.Module):
     def compute_loss(self, batch):
         X, Y = batch
         prediction = self(X)
-        if self.training: l2_penalty = X.size(0)/config.dataset_size_classical*weight_decay * torch.sum(self.W.flatten() ** 2)
-        else: l2_penalty = 0.
-        return torch.sum((prediction-Y)**2).mean() + l2_penalty
+        torch.sum(self.W.flatten() ** 2)
+        return torch.sum((prediction-Y)**2).mean()
 
     def plot_eval(self, gt_model):
         # we need the gt params to plot
@@ -387,8 +389,6 @@ class LinearVariational(Linear):
             return self.mus
 
     def forward(self, x):
-
-
         return super().forward(x)
 
     def compute_loss(self, batch):
@@ -398,8 +398,8 @@ class LinearVariational(Linear):
         if self.training:
             kl_div = 0.5 * (self.dy * self.K * (torch.exp(self.logvar) - self.logvar - 1) + torch.sum(self.mus ** 2))
         else: kl_div = 0.
-        sse = torch.sum((prediction-Y)**2)
-        sse = sse / X.size(0) * dataset_size_classical  # normalize with dataset size
+        noise_var = 0.25    #TODO make configurable
+        sse = 1./noise_var*torch.sum((prediction-Y)**2)
         return sse + kl_div
 
     def get_W(self):

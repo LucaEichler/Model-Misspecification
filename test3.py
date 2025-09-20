@@ -1,6 +1,6 @@
 import torch
 import time
-
+#test for the batched forward function for NonLinear models
 from classical_models import NonLinear
 
 dx=1

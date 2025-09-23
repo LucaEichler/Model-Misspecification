@@ -37,7 +37,7 @@ amortized_specs = {
                 'min_lr': 1e-6,
                 'weight_decay': 1e-5,
                 'dataset_amount': 100000,
-                'num_iters': 100000,
+                'num_iters': 10000,
                 'batch_size': 100,
                 'valset_size': 10000,
                 'normalize': False
@@ -65,7 +65,7 @@ classical_specs = {
 default_specs = {
     'losses': ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl'],
     'save_path': './exp1_default',
-    'dh': 100,
+    'dh': 10,
     'classical_model_specs': classical_specs,
     'amortized_model_specs': amortized_specs,
     'noise_std': 0.5,
@@ -79,9 +79,9 @@ def run_experiments(exp1_specs):
         save_path = specification['save_path']
 
         model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
-        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian', tries=specification['trials'])
 
         trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=0.5, model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'], save_all=False)
+        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian', tries=specification['trials'])
 
 
         #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?

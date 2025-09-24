@@ -1,3 +1,4 @@
+import copy
 
 import numpy as np
 from scipy.stats import t
@@ -54,7 +55,7 @@ classical_specs = {
     'dataset_size': 128,
     'weight_decay': 1e-5,
     'lr': 0.01,
-    'num_iters': 100000,
+    'num_iters': 1,#100000,
     'early_stopping_params': {
             'early_stopping_enabled': True,
             'patience': 10,
@@ -66,11 +67,11 @@ classical_specs = {
 default_specs = {
     'losses': ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl'],
     'save_path': './exp1_default',
-    'dh': 10,
+    'dh': 100,#10,
     'classical_model_specs': classical_specs,
     'amortized_model_specs': amortized_specs,
     'noise_std': 0.5,
-    'trials': 1
+    'trials': 1#100
 }
 
 
@@ -98,6 +99,12 @@ def run_experiments(exp1_specs):
                 classical_models_trained = elem[2]
 
                 Y = gt(X) # ground truth output to compare with
+                for modelling_assumption in model_specs:
+                    # Random Baseline
+                    random_model = eval(modelling_assumption[0])(dx=1, dy=1, **modelling_assumption[1]).to(device)
+                    mse = metrics.mse(Y, random_model(X))
+                    mse_results.append({'gt': gt._get_name(),
+                                        'model_name': random_model._get_name()+'Random', 'mse': mse.item()})
 
                 for i in range(0, len(classical_models_trained)):
 
@@ -130,6 +137,8 @@ def run_experiments(exp1_specs):
 
                     mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
                 j=j+1
+
+
         df = pd.DataFrame(mse_results)
         df_params = pd.DataFrame(mse_params_results)
 

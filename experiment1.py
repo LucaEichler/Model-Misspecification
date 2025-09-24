@@ -114,6 +114,7 @@ def run_experiments(exp1_specs):
 
                 for trained_in_context_model in trained_in_context_models:
 
+                    trained_in_context_model[1].to(device)
                     Y_pred, means_pred = trained_in_context_model[1].predict(torch.cat((elem[1].X, elem[1].Y), dim=-1).unsqueeze(0), X.unsqueeze(0))
 
                     if isinstance(trained_in_context_model[1].eval_model, type(gt)):

@@ -4,6 +4,7 @@ from scipy.stats import t
 import pandas as pd
 import torch
 
+import metrics
 import seed
 from main import train_in_context_models, train_classical_models, eval_plot_nn
 from classical_models import Linear, NonLinear
@@ -108,7 +109,7 @@ def run_experiments(exp1_specs):
 
                     classical_models_trained[i].eval()
                     Y_pred = classical_models_trained[i](X)
-                    mse = torch.mean((Y-Y_pred)**2)
+                    mse = metrics.mse(Y, Y_pred)
                     mse_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(), 'mse': mse.item()})
                     #eval_plot(gt._get_name()+" "+str(j), classical_models_trained[i]._get_name(), gt, X, Y_pred)
 
@@ -124,7 +125,7 @@ def run_experiments(exp1_specs):
 
                     eval_plot_nn(gt._get_name()+" "+str(j) + trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt(X), X, Y_pred)
 
-                    mse = torch.mean((Y-Y_pred)**2)
+                    mse = metrics.mse(Y, Y_pred)
 
                     mse_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse': mse.item()})
                 j=j+1

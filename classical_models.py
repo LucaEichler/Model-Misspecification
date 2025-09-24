@@ -365,7 +365,6 @@ class Linear(nn.Module):
         if self.order == 2:
             return "Quadratic"
         else: return "Linear"
-        return super()._get_name()+str(self.order)
 
 
 class LinearVariational(Linear):
@@ -411,3 +410,6 @@ class LinearVariational(Linear):
             W += self.mus + torch.exp(self.logvar) * torch.randn_like(self.mus)
         W /= 20
         return W
+
+    def _get_name(self):
+        return super()._get_name() + "Variational"

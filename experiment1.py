@@ -55,7 +55,7 @@ classical_specs = {
     'dataset_size': 128,
     'weight_decay': 1e-5,
     'lr': 0.01,
-    'num_iters': 1,#100000,
+    'num_iters': 100000,
     'early_stopping_params': {
             'early_stopping_enabled': True,
             'patience': 10,
@@ -67,11 +67,11 @@ classical_specs = {
 default_specs = {
     'losses': ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl'],
     'save_path': './exp1_default',
-    'dh': 100,#10,
+    'dh': 10,
     'classical_model_specs': classical_specs,
     'amortized_model_specs': amortized_specs,
     'noise_std': 0.5,
-    'trials': 1#100
+    'trials': 100
 }
 
 
@@ -82,9 +82,8 @@ def run_experiments(exp1_specs):
 
         model_specs = [('Linear', {'order': 1}), ('Linear', {'order': 2}), ('NonLinear', {'dh': specification['dh']})]
 
-        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian', tries=specification['trials'], noise_std=specification['noise_std'])
-
         trained_in_context_models = train_in_context_models(dx=1, dy=1, x_dist='gaussian', transformer_arch=specification['amortized_model_specs']['transformer_arch'], train_specs=specification['amortized_model_specs']['train_specs'], noise_std=specification['noise_std'], model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['amortized_model_specs']['early_stopping_params'], save_path=specification['save_path'], save_all=False)
+        linear_datasets, linear_2_datasets, nonlinear_datasets = train_classical_models(dx=1, dy=1, dh=specification['dh'], specs=specification['classical_model_specs'], x_dist='gaussian', tries=specification['trials'], noise_std=specification['noise_std'])
 
 
         #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
@@ -131,7 +130,7 @@ def run_experiments(exp1_specs):
                             mse_params = metrics.mse(means_pred.squeeze(0), gt.get_W())
                             mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
 
-                    eval_plot_nn(gt._get_name()+" "+str(j) + trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt(X), X, Y_pred)
+                    #eval_plot_nn(gt._get_name()+" "+str(j) + trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt(X), X, Y_pred)
 
                     mse = metrics.mse(Y, Y_pred)
 
@@ -158,5 +157,9 @@ def run_experiments(exp1_specs):
 
 
 specification = default_specs
-specification['save_path'] = "./exp1"
+specification['save_path'] = "./exp1_dh10"
+specification['trials'] = 10
 run_experiments([specification])
+specification['trials'] = 100
+run_experiments([specification])
+

@@ -7,7 +7,7 @@
 # General Parameters
 # ====================================================================================
 
-wandb_enabled: True
+wandb_enabled: False
 wandb_project_name: "Experiment 1 dh=10"
 wandb_exp_name: "Default"
 

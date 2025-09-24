@@ -172,8 +172,8 @@ default_specs = {
 
 specs_1 = copy.deepcopy(default_specs)
 
-specs_1['save_path'] = './exp2_1024_ds'
-specs_1['train_specs']['dataset_size'] = 1024
+specs_1['save_path'] = './exp2_num_layers_x2'
+specs_1['transformer_arch']['num_layers'] = 8
 
 
 run_experiments([specs_1])

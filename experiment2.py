@@ -34,7 +34,7 @@ def run_experiments(exp2_specs):
     for specification in exp2_specs:
         trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=specification['transformer_arch'],
                                                             x_dist='uniform', train_specs=specification['train_specs'], noise_std=0.5,
-                                                            model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['early_stopping_params'], save_path=specification['save_path'])
+                                                            model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['early_stopping_params'], save_path=specification['save_path'], save_all=specification['save_all'])
         specification['trained_models'] = trained_in_context_models
         specification['results'] = [[], [], []]
 
@@ -167,7 +167,8 @@ default_specs = {
         'load_best': True
     },
     'losses': losses,
-    'save_path': './exp2_default'
+    'save_path': './exp2_default',
+    'save_all': False
 }
 
 specs_1 = copy.deepcopy(default_specs)

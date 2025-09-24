@@ -103,7 +103,7 @@ def run_experiments(exp1_specs):
                     # we only can compare the parameters if there is no misspecification
                     if isinstance(classical_models_trained[i], type(gt)):
                         if not isinstance(classical_models_trained[i], Linear) or classical_models_trained[i].order == gt.order:
-                            mse_params = ((classical_models_trained[i].get_W() - gt.get_W())**2).mean()
+                            mse_params = metrics.mse(classical_models_trained[i].get_W(), gt.get_W())
                             mse_params_results.append({'gt': gt._get_name(), 'model_name': classical_models_trained[i]._get_name(),
                                                 'mse_params': mse_params.item()})
 
@@ -120,7 +120,7 @@ def run_experiments(exp1_specs):
 
                     if isinstance(trained_in_context_model[1].eval_model, type(gt)):
                         if not isinstance(trained_in_context_model[1].eval_model, Linear) or trained_in_context_model[1].eval_model.order == gt.order:
-                            mse_params = ((means_pred.squeeze(0) - gt.get_W())**2).mean()
+                            mse_params = metrics.mse(means_pred.squeeze(0), gt.get_W())
                             mse_params_results.append({'gt': gt._get_name(), 'model_name': trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), 'mse_params': mse_params.item()})
 
                     eval_plot_nn(gt._get_name()+" "+str(j) + trained_in_context_model[0]+" "+trained_in_context_model[1].eval_model._get_name(), gt(X), X, Y_pred)

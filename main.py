@@ -85,7 +85,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model
     return trained_models
 
 
-def train_classical_models(dx, dy, dh, x_dist, specs, tries):
+def train_classical_models(dx, dy, dh, x_dist, specs, tries, noise_std):
     dataset_size = specs['dataset_size']
 
     # Create underlying ground truth models and datasets for training classical models
@@ -97,18 +97,18 @@ def train_classical_models(dx, dy, dh, x_dist, specs, tries):
 
     for _i in range(0, tries):
         gt_linear = Linear(dx, dy, order=1)
-        ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist)
-        val_ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist)
+        ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist, noise_std)
+        val_ds_linear = datasets.PointDataset(dataset_size, gt_linear, x_dist, noise_std)
         linear = (gt_linear, ds_linear, [], val_ds_linear)
 
         gt_linear_2 = Linear(dx, dy, order=2)
-        ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist)
-        val_ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist)
+        ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist, noise_std)
+        val_ds_linear_2 = datasets.PointDataset(dataset_size, gt_linear_2, x_dist, noise_std)
         linear_2 = (gt_linear_2, ds_linear_2, [], val_ds_linear_2)
 
         gt_nonlinear = NonLinear(dx, dy, dh)
-        ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist)
-        val_ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist)
+        ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist, noise_std)
+        val_ds_nonlinear = datasets.PointDataset(dataset_size, gt_nonlinear, x_dist, noise_std)
         nonlinear = (gt_nonlinear, ds_nonlinear, [], val_ds_nonlinear)
 
         linear_datasets.append(linear)

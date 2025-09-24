@@ -37,16 +37,16 @@ amortized_specs = {
                 'min_lr': 1e-6,
                 'weight_decay': 1e-5,
                 'dataset_amount': 100000,
-                'num_iters': 10000,
+                'num_iters': 100000,
                 'batch_size': 100,
                 'valset_size': 10000,
                 'normalize': False
             },
         'early_stopping_params': {
-            'early_stopping_enabled': False,
+            'early_stopping_enabled': True,
             'patience': 10,
             'min_delta': 0.01,
-            'load_best': True
+            'load_best': False
         },
 }
 classical_specs = {
@@ -69,7 +69,7 @@ default_specs = {
     'classical_model_specs': classical_specs,
     'amortized_model_specs': amortized_specs,
     'noise_std': 0.5,
-    'trials': 15
+    'trials': 100
 }
 
 

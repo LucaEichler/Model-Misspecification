@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from scipy.stats import t
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR, ReduceLROnPlateau
 
+import neuralop
 import wandb
 from torch.utils.data import DataLoader
 import yaml
@@ -162,7 +163,7 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
     if early_stopping_params['early_stopping_enabled']:
         early_stopping = EarlyStopping(patience=early_stopping_params['patience'], min_delta=early_stopping_params['min_delta'])
 
-    if isinstance(model, in_context_models.InContextModel):
+    if isinstance(model, in_context_models.InContextModel) or isinstance(model, neuralop.InterpolationModel):
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
         warmup_iters = 2000
         warmup_scheduler = torch.optim.lr_scheduler.LinearLR(

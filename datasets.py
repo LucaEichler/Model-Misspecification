@@ -49,9 +49,9 @@ def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
     noise = torch.normal(mean=0., std=noise_std, size=Y.shape, device = Y.device)
     # add noise (old)
     #noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
-    Y = Y + noise
+    Y_noisy = Y + noise
 
-    return X.to(device), Y.detach()
+    return X.to(device), Y_noisy.detach(), Y.detach()
 
 class PointDataset(Dataset):
     """
@@ -60,7 +60,7 @@ class PointDataset(Dataset):
 
     def __init__(self, size, model, x_dist, noise_std=0.0, bounds=None):
         self.model = model.to(device)
-        self.X, self.Y = sample_dataset(size, self.model, x_dist, noise_std, bounds)
+        self.X, self.Y, _ = sample_dataset(size, self.model, x_dist, noise_std, bounds)
 
     def __len__(self):
         return self.X.shape[0]
@@ -92,8 +92,9 @@ class ContextDataset(Dataset):
     whole datasets, i. e. a set of (x,y) pairs
     """
 
-    def __init__(self, size, ds_size, model_class, dx, dy, x_dist, noise_std=0.0, params_list=None, bounds=None, **kwargs):
+    def __init__(self, size, ds_size, model_class, dx, dy, x_dist, noise_std=0.0, params_list=None, bounds=None, save_gt=None, **kwargs):
         self.data = []
+        self.y_gt = []
         self.params = []
 
         W = None
@@ -109,9 +110,10 @@ class ContextDataset(Dataset):
 
                 # Create new model which will be underlying this dataset
                 model = eval(model_class)(dx, dy, init_W=W, **kwargs).to(device)
-                X, Y = sample_dataset(ds_size, model, x_dist, noise_std, bound)
+                X, Y, Y_gt = sample_dataset(ds_size, model, x_dist, noise_std, bound)
                 self.data.append(torch.cat((X, Y), dim=1))
                 self.params.append(model.get_W())
+                self.y_gt.append(Y_gt)
 
 
             # Store the actual datasets...
@@ -119,13 +121,16 @@ class ContextDataset(Dataset):
             # ...and the parameters that were used to generate them
             self.params = torch.stack(self.params, dim=0)
 
+            # ...and for neural operator methods also ground truth values
+            self.y_gt = torch.stack(self.y_gt, dim=0)
+
 
 
     def __len__(self):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :].to(device), self.params[idx].to(device)
+        return self.data[idx, :].to(device), self.params[idx].to(device), self.y_gt[idx, :].to(device)
 
 
 class ContextDatasetAlternative(Dataset):

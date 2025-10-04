@@ -106,8 +106,8 @@ def normalize_params(params, scales):  # params of shape (batch_size, num_params
 def normalize_to_scales(x, scales):
     x_norm = x.clone()
     for i in range(x.size(-1)):
-        x_min = scales[:, i, 0]
-        x_max = scales[:, i, 1]
+        x_min = scales[:, i, 0][:,None]
+        x_max = scales[:, i, 1][:,None]
         x_norm[:, :, i] = (x[:,:,i]-x_min)/(x_max-x_min)
 
     return x_norm
@@ -265,7 +265,7 @@ class InContextModel(nn.Module):
         return model_predictions, pred_params
 
     def compute_forward(self, batch):
-        datasets_in, gt_params = batch
+        datasets_in, gt_params, gt_Y = batch
         datasets_in_X = datasets_in[:, :, 0:self.dx]  # the x values for every point in every dataset
         if self.normalize:
             datasets_in_X, scales = normalize_input(datasets_in_X.transpose(0,1))

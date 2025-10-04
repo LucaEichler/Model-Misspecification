@@ -87,7 +87,7 @@ def run_experiments(exp1_specs):
 
 
         #X = torch.linspace(-5, 5, 128).unsqueeze(1)  # 128 equally spaced evaluation points between -1 and 1 - should we instead take a normally distributed sample here every time?
-        X = torch.randn(128).unsqueeze(1).to(device) #TODO 128 points is a bit few, increase
+        X = torch.randn(128).unsqueeze(1).to(device) #TODO sample new 128 points for every test
 
         mse_results = []
         mse_params_results = []

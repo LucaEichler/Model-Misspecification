@@ -76,7 +76,7 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model
             if os.path.exists(model_path+".pt"):    # this path only exists when the train loop for a model was fully finished
                 checkpoint = torch.load(model_path+".pt", map_location=config.device)   # in this case, we load the model and skip training
                 model.load_state_dict(checkpoint["model_state_dict"])
-                model_trained = model
+                model_trained = model.to(config.device)
             else:
                 os.makedirs(model_path + "/", exist_ok=True)
                 model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'], batch_size=train_specs['batch_size'],

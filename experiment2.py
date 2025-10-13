@@ -24,7 +24,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 
-
+input_set_size = 1024 # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 10           # amount of ground truth functions that the model is tested on
 
@@ -52,7 +52,6 @@ def run_experiments(exp2_specs):
             ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
 
             for specification in exp2_specs:
-                input_set_size = specification['train_specs']['dataset_size']  # the size of the context set that a model gets for testing
 
                 save_path = specification['save_path']
                 trained_in_context_models = specification['trained_models']

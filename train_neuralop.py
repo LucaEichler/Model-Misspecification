@@ -62,3 +62,19 @@ model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=tra
                       lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
                       early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,
                       min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
+ # test neural operator - plots ?
+
+trials = 10
+input_set_size = 100
+test_set_size = 100
+for model_spec in model_specs:
+    for i in range(trials):
+        # create new ground truth model for evaluation
+        gt_model = eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])
+        bounds = datasets.gen_uniform_bounds(dx)
+
+        # sample an input dataset from ground truth
+        ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+
+        # test dataset, noise disabled to get target function values
+        ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)

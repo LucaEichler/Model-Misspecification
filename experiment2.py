@@ -23,6 +23,7 @@ plot=False
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
 input_set_size = 1024 # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
@@ -137,7 +138,6 @@ def run_experiments(exp2_specs):
         df_avg.to_csv(save_path+"/experiment2_results_rel.csv", index=False)
 
 
-losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
 
 default_specs = {

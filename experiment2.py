@@ -25,7 +25,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
-input_set_size = 1024 # the size of the context set that a model gets for testing
+input_set_size = 128 # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 10           # amount of ground truth functions that the model is tested on
 
@@ -173,8 +173,8 @@ default_specs = {
 
 specs_1 = copy.deepcopy(default_specs)
 
-specs_1['save_path'] = './exp2_1024_dataset_size'
+#specs_1['save_path'] = './exp2_1024_dataset_sizetest'
 #specs_1['transformer_arch']['num_layers'] = 8
-specs_1['train_specs']['dataset_size'] = 1024
+#specs_1['train_specs']['dataset_size'] = 128
 
 run_experiments([specs_1])

@@ -347,3 +347,5 @@ class InterpolationModel(nn.Module):
         out = self(datasets_in[:, :, 0:3], datasets_in[:, :, 0:3], datasets_in[:, :, 3:4], mask)
 
         return metrics.mse(out, y_gt)
+
+

@@ -1,9 +1,13 @@
 import os
 
+import pandas as pd
+
 import config
 import datasets
 from main import train
+from metrics import mse
 from neuralop import InterpolationModel
+from classical_models import Linear, NonLinear
 
 model = InterpolationModel()
 print(model)
@@ -22,7 +26,7 @@ default_specs = {
             'weight_decay': 1e-5,
             'dataset_amount': 10000,
             'dataset_size': 128,
-            'num_iters': 1000000,
+            'num_iters': 1, #1000000,
             'batch_size': 100,
             'valset_size': 10000,
             'normalize': True
@@ -64,9 +68,10 @@ model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=tra
                       min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
  # test neural operator - plots ?
 
+results=[]
 trials = 10
-input_set_size = 100
-test_set_size = 100
+input_set_size = 128
+test_set_size = 1000
 for model_spec in model_specs:
     for i in range(trials):
         # create new ground truth model for evaluation
@@ -78,3 +83,16 @@ for model_spec in model_specs:
 
         # test dataset, noise disabled to get target function values
         ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+
+        predictions = model_trained(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0), ds_input.Y.unsqueeze(0), mask=None)
+
+        results.append({
+        "trial": i,
+        'gt': gt_model._get_name(),
+        'model_name': 'neuralop',
+        "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
+        )
+
+df = pd.DataFrame(results)
+df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+df_avg.to_csv(specs['save_path'] + "/neuralop.csv", index=False)

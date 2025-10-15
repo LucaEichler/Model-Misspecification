@@ -1,9 +1,11 @@
 import os
 
 import pandas as pd
+import torch
 
 import config
 import datasets
+import main
 from main import train
 from metrics import mse
 from neuralop import InterpolationModel
@@ -26,9 +28,9 @@ default_specs = {
             'weight_decay': 1e-5,
             'dataset_amount': 10000,
             'dataset_size': 128,
-            'num_iters': 10000,
+            'num_iters': 1, #10000,
             'batch_size': 100,
-            'valset_size': 10000,
+            'valset_size': 100, #1000,
             'normalize': True
         },
     'early_stopping_params': {
@@ -49,7 +51,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 
 model_spec = model_specs[0]
-x_dist='gaussian'
+x_dist='uniform'
 noise_std=0.5
 dx, dy = 3,1
 model_path = specs['save_path']
@@ -92,6 +94,23 @@ for model_spec in model_specs:
         'model_name': 'neuralop',
         "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
         )
+        plot = True
+        if plot:
+            os.makedirs(specs['save_path'] + "/plots/", exist_ok=True)
+
+            Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+            Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
+            Yplot = gt_model(Xplot)
+
+            # plotting is flawed, need to give different input to amortized model / cf
+            # sample an input dataset from ground truth
+            ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
+                                                  bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+
+            y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), ds_input_plot.X.unsqueeze(0), mask=None)
+
+            main.eval_plot(gt_model._get_name() + " " + str(i), "neuralop",
+                           gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])
 
 df = pd.DataFrame(results)
 df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()

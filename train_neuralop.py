@@ -26,7 +26,7 @@ default_specs = {
             'weight_decay': 1e-5,
             'dataset_amount': 10000,
             'dataset_size': 128,
-            'num_iters': 1, #1000000,
+            'num_iters': 10000,
             'batch_size': 100,
             'valset_size': 10000,
             'normalize': True

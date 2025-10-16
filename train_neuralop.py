@@ -102,12 +102,10 @@ for model_spec in model_specs:
             Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
             Yplot = gt_model(Xplot)
 
-            # plotting is flawed, need to give different input to amortized model / cf
-            # sample an input dataset from ground truth
             ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
                                                   bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
-            y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), ds_input_plot.X.unsqueeze(0), mask=None)
+            y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)
 
             main.eval_plot(gt_model._get_name() + " " + str(i), "neuralop",
                            gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])

@@ -113,7 +113,7 @@ for model_spec in model_specs:
 
                 y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)
 
-                main.eval_plot(gt_model._get_name() + " " + str(i), "neuralop",
+                main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
                                gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])
 
 df = pd.DataFrame(results)

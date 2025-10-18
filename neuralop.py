@@ -177,11 +177,11 @@ def renormalize(output_normalized, y_mean, y_std):
 
 
 # Hyperparameters
-temporal_embedding_dim = 21
+temporal_embedding_dim = 85
 transformer_dim = temporal_embedding_dim*3 + 1
 transformer_nhead = 8
 transformer_encoder_layers = 3
-transformer_ff_dim = 256
+transformer_ff_dim = 4*transformer_dim
 ffn_hidden_dim = 512
 ffn_num_hidden_layers = 2
 branch_net_num_hidden_layers = 1

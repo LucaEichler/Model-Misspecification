@@ -9,11 +9,14 @@ import datasets
 import main
 import plotting
 import seed
+import train_neuralop
 from main import train_in_context_models
 
 import classical_models
 from classical_models import Linear
 from metrics import mse, mse_range, mse_rel
+from neuralop import InterpolationModel
+
 seed.set_seed(0)
 
 dx = 3
@@ -30,7 +33,7 @@ test_set_size = 1000    # the amount of points for each dataset that is tested o
 trials = 10           # amount of ground truth functions that the model is tested on
 
 
-def run_experiments(exp2_specs):
+def run_experiments(exp2_specs, nop_specs=None):
     for specification in exp2_specs:
         trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=specification['transformer_arch'],
                                                             x_dist='uniform', train_specs=specification['train_specs'], noise_std=0.5,
@@ -38,21 +41,69 @@ def run_experiments(exp2_specs):
         specification['trained_models'] = trained_in_context_models
         specification['results'] = [[], [], []]
 
+    if nop_specs: # load neural operator models
+        nop_models = []
+        nop_results = []
+        for model_spec in model_specs:
+            model = InterpolationModel()
+            model_name = "nop_" + eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])._get_name()
+            model_path = nop_specs['save_path'] + "/" + model_name
+            if os.path.exists(
+                    model_path + ".pt"):  # this path only exists when the train loop for a model was fully finished
+                checkpoint = torch.load(model_path + ".pt",
+                                        map_location=config.device)  # in this case, we load the model and skip training
+                model.load_state_dict(checkpoint["model_state_dict"])
+                model.to(config.device)
 
-    for model_spec in model_specs:
-        for i in range(trials):
+            nop_models.append((model, model_name, model_path))
+
+    for eval_spec in model_specs: # evaluate on every ground truth data distribution
+
+        for i in range(trials): # average over T trials
 
             # create new ground truth model for evaluation
-            gt_model = eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])
+            gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
             bounds = datasets.gen_uniform_bounds(dx)
-
-            # sample an input dataset from ground truth
-            ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
             # test dataset, noise disabled to get target function values
             ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
 
-            for specification in exp2_specs:
+            if nop_specs:
+                for model, model_name, model_path in nop_models:
+                    # sample an input dataset from ground truth
+                    ds_input = datasets.PointDataset(128, gt_model, x_dist='uniform', noise_std=0.5,
+                                                     bounds=bounds)
+                    predictions = model(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0),
+                                                ds_input.Y.unsqueeze(0), mask=None)
+
+                    nop_results.append({
+                        "trial": i,
+                        'gt': gt_model._get_name(),
+                        'model_name': model_name,
+                        "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
+                    )
+                    plot = True
+                    if plot:
+                        os.makedirs(nop_specs['save_path'] + "/plots/", exist_ok=True)
+
+                        Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+                        Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
+                        Yplot = gt_model(Xplot)
+
+                        ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
+                                                              bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+
+                        y_pred = model(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0),
+                                               ds_input_plot.Y.unsqueeze(0), mask=None)
+
+                        main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
+                                       gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=nop_specs['save_path'])
+
+            for specification in exp2_specs: # evaluate each given specification for in context models, useful for ablations
+
+                # sample an input dataset from ground truth
+                ds_input = datasets.PointDataset(specification['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5,
+                                                 bounds=bounds)
 
                 save_path = specification['save_path']
                 trained_in_context_models = specification['trained_models']
@@ -110,7 +161,7 @@ def run_experiments(exp2_specs):
 
                         # plotting is flawed, need to give different input to amortized model / cf
                         # sample an input dataset from ground truth
-                        ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+                        ds_input_plot = datasets.PointDataset(specification['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
                         Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
                                                                                Xplot.unsqueeze(0))
@@ -137,7 +188,10 @@ def run_experiments(exp2_specs):
         df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
         df_avg.to_csv(save_path+"/experiment2_results_rel.csv", index=False)
 
-
+    if nop_specs:
+        df = pd.DataFrame(results)
+        df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+        df_avg.to_csv(nop_specs['save_path'] + "/neuralop.csv", index=False)
 
 
 default_specs = {
@@ -177,4 +231,4 @@ specs_1['save_path'] = './exp2_8_layers_new'
 specs_1['transformer_arch']['num_layers'] = 8
 #specs_1['train_specs']['dataset_size'] = 128
 
-run_experiments([specs_1])
+run_experiments([specs_1], nop_specs=train_neuralop.specs)

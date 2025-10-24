@@ -207,11 +207,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 10000, #100000,
+        'dataset_amount': 100000,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 1000, #10000,
+        'valset_size': 10000,
         'normalize': True
     },
     'early_stopping_params': {

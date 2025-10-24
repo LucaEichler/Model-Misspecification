@@ -42,80 +42,82 @@ default_specs = {
     'save_all': False
 }
 specs = default_specs
-train_specs = specs['train_specs']
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
-               ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+if __name__ == "__main__":
+    train_specs = specs['train_specs']
 
-results=[]
-for model_spec in model_specs:
-    model = InterpolationModel()
-    x_dist='uniform'
-    noise_std=0.5
-    dx, dy = 3,1
-    model_name = "nop_"+eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])._get_name()
-    model_path = specs['save_path'] + "/" + model_name
-    save_all =specs['save_all']
-    os.makedirs(model_path, exist_ok=True)
-    dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy,
-                                      x_dist, noise_std, **model_spec[1])
-    valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy,
-                                     x_dist, noise_std, **model_spec[1])  # TODO valset size in config
-    model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'],
-                          batch_size=train_specs['batch_size'],
-                          lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
-                          early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,
-                          min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
-     # test neural operator - plots ?
+    model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
+                   ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
+                   ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+
+    results=[]
+    for model_spec in model_specs:
+        model = InterpolationModel()
+        x_dist='uniform'
+        noise_std=0.5
+        dx, dy = 3,1
+        model_name = "nop_"+eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])._get_name()
+        model_path = specs['save_path'] + "/" + model_name
+        save_all =specs['save_all']
+        os.makedirs(model_path, exist_ok=True)
+        dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy,
+                                          x_dist, noise_std, **model_spec[1])
+        valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy,
+                                         x_dist, noise_std, **model_spec[1])  # TODO valset size in config
+        model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'],
+                              batch_size=train_specs['batch_size'],
+                              lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
+                              early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,
+                              min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
+         # test neural operator - plots ?
 
 
 
-    trials = 10
-    input_set_size = 128
-    test_set_size = 1000
+        trials = 10
+        input_set_size = 128
+        test_set_size = 1000
 
-    if os.path.exists(model_path + ".pt"):  # this path only exists when the train loop for a model was fully finished
-        checkpoint = torch.load(model_path + ".pt",
-                                map_location=config.device)  # in this case, we load the model and skip training
-        model.load_state_dict(checkpoint["model_state_dict"])
-        model_trained = model.to(config.device)
-    for eval_spec in model_specs:
-        for i in range(trials):
-            # create new ground truth model for evaluation
-            gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-            bounds = datasets.gen_uniform_bounds(dx)
+        if os.path.exists(model_path + ".pt"):  # this path only exists when the train loop for a model was fully finished
+            checkpoint = torch.load(model_path + ".pt",
+                                    map_location=config.device)  # in this case, we load the model and skip training
+            model.load_state_dict(checkpoint["model_state_dict"])
+            model_trained = model.to(config.device)
+        for eval_spec in model_specs:
+            for i in range(trials):
+                # create new ground truth model for evaluation
+                gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
+                bounds = datasets.gen_uniform_bounds(dx)
 
-            # sample an input dataset from ground truth
-            ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+                # sample an input dataset from ground truth
+                ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
-            # test dataset, noise disabled to get target function values
-            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+                # test dataset, noise disabled to get target function values
+                ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
 
-            predictions = model_trained(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0), ds_input.Y.unsqueeze(0), mask=None)
+                predictions = model_trained(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0), ds_input.Y.unsqueeze(0), mask=None)
 
-            results.append({
-            "trial": i,
-            'gt': gt_model._get_name(),
-            'model_name': model_name,
-            "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
-            )
-            plot = True
-            if plot:
-                os.makedirs(specs['save_path'] + "/plots/", exist_ok=True)
+                results.append({
+                "trial": i,
+                'gt': gt_model._get_name(),
+                'model_name': model_name,
+                "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
+                )
+                plot = True
+                if plot:
+                    os.makedirs(specs['save_path'] + "/plots/", exist_ok=True)
 
-                Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
-                Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
-                Yplot = gt_model(Xplot)
+                    Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
+                    Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
+                    Yplot = gt_model(Xplot)
 
-                ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
-                                                      bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+                    ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
+                                                          bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
-                y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)
+                    y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)
 
-                main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
-                               gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])
+                    main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
+                                   gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])
 
-df = pd.DataFrame(results)
-df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
-df_avg.to_csv(specs['save_path'] + "/neuralop.csv", index=False)
+    df = pd.DataFrame(results)
+    df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+    df_avg.to_csv(specs['save_path'] + "/neuralop.csv", index=False)

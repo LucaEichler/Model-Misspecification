@@ -30,7 +30,7 @@ losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
 input_set_size = 128 # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
-trials = 10           # amount of ground truth functions that the model is tested on
+trials = 50        # amount of ground truth functions that the model is tested on
 
 
 def run_experiments(exp2_specs, nop_specs=None):
@@ -102,7 +102,7 @@ def run_experiments(exp2_specs, nop_specs=None):
             for specification in exp2_specs: # evaluate each given specification for in context models, useful for ablations
 
                 # sample an input dataset from ground truth
-                ds_input = datasets.PointDataset(specification['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5,
+                ds_input = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5,
                                                  bounds=bounds)
 
                 save_path = specification['save_path']
@@ -161,7 +161,7 @@ def run_experiments(exp2_specs, nop_specs=None):
 
                         # plotting is flawed, need to give different input to amortized model / cf
                         # sample an input dataset from ground truth
-                        ds_input_plot = datasets.PointDataset(specification['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+                        ds_input_plot = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
                         Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
                                                                                Xplot.unsqueeze(0))
@@ -189,7 +189,7 @@ def run_experiments(exp2_specs, nop_specs=None):
         df_avg.to_csv(save_path+"/experiment2_results_rel.csv", index=False)
 
     if nop_specs:
-        df = pd.DataFrame(results)
+        df = pd.DataFrame(nop_results)
         df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
         df_avg.to_csv(nop_specs['save_path'] + "/neuralop.csv", index=False)
 
@@ -207,11 +207,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 10000, #100000,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 1000, #10000,
         'normalize': True
     },
     'early_stopping_params': {
@@ -226,9 +226,8 @@ default_specs = {
 }
 
 specs_1 = copy.deepcopy(default_specs)
-
-specs_1['save_path'] = './exp2_8_layers_new'
-specs_1['transformer_arch']['num_layers'] = 8
-#specs_1['train_specs']['dataset_size'] = 128
-
-run_experiments([specs_1], nop_specs=train_neuralop.specs)
+specs_2 = copy.deepcopy(default_specs)
+specs_3 = copy.deepcopy(default_specs)
+specs_3['save_path'] = './exp2_dataset_size_1024_fixed_bounds'
+specs_3['train_specs']['dataset_size'] = 1024
+run_experiments([specs_3], nop_specs=None)

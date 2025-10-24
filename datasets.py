@@ -15,6 +15,7 @@ def gen_uniform_bounds(dim, min=-10., max=10.):
     for i in range(dim):
         lohi = torch.empty(2).uniform_(-10, 10)
         lo, hi = lohi.min(), lohi.max()
+        lo, hi = -10., 10.
         bounds[i,0], bounds[i,1] = lo, hi
     return bounds
 

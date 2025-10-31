@@ -28,18 +28,24 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
 
-input_set_size = 128 # the size of the context set that a model gets for testing
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
 
 
-def run_experiments(exp2_specs, nop_specs=None):
+def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
     for specification in exp2_specs:
+
+        dataset_sizes = []  # list of all unique dataset sizes, used later for efficiency
+        if not dataset_sizes.__contains__(specification['train_specs']['dataset_size']):
+            dataset_sizes.append(specification['train_specs']['dataset_size'])
+
         trained_in_context_models = train_in_context_models(dx=dx, dy=dy, transformer_arch=specification['transformer_arch'],
-                                                            x_dist='uniform', train_specs=specification['train_specs'], noise_std=0.5,
+                                                            x_dist=x_dist, train_specs=specification['train_specs'], noise_std=0.5,
                                                             model_specs=model_specs, losses=specification['losses'], early_stopping_params=specification['early_stopping_params'], save_path=specification['save_path'], save_all=specification['save_all'])
         specification['trained_models'] = trained_in_context_models
         specification['results'] = [[], [], []]
+
+    dataset_sizes = sorted(dataset_sizes, reverse=True) # sort dataset sizes descending
 
     if nop_specs: # load neural operator models
         nop_models = []
@@ -66,12 +72,12 @@ def run_experiments(exp2_specs, nop_specs=None):
             bounds = datasets.gen_uniform_bounds(dx)
 
             # test dataset, noise disabled to get target function values
-            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
 
             if nop_specs:
                 for model, model_name, model_path in nop_models:
                     # sample an input dataset from ground truth
-                    ds_input = datasets.PointDataset(128, gt_model, x_dist='uniform', noise_std=0.5,
+                    ds_input = datasets.PointDataset(128, gt_model, x_dist=x_dist, noise_std=0.5,
                                                      bounds=bounds)
                     predictions = model(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0),
                                                 ds_input.Y.unsqueeze(0), mask=None)
@@ -90,7 +96,7 @@ def run_experiments(exp2_specs, nop_specs=None):
                         Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
                         Yplot = gt_model(Xplot)
 
-                        ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
+                        ds_input_plot = datasets.PointDataset(128, gt_model, x_dist=x_dist, noise_std=0.5,
                                                               bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
                         y_pred = model(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0),
@@ -99,11 +105,22 @@ def run_experiments(exp2_specs, nop_specs=None):
                         main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
                                        gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=nop_specs['save_path'])
 
+            ds_input_dict = {}
+            for i in range(len(dataset_sizes)):
+                ds_size = dataset_sizes[i]
+                if i == 0:
+                    # sample input dataset for the biggest dataset size
+                    ds = datasets.PointDataset(ds_size, gt_model,
+                                                     x_dist=x_dist, noise_std=0.5,
+                                                     bounds=bounds)
+                # take a subset of the biggest dataset for smaller datasets
+                ds_input_dict[ds_size] = datasets.PointDataset(ds_size, gt_model,
+                                                     x_dist=x_dist, noise_std=0.5,
+                                                     bounds=bounds, data=(ds.X[0:ds_size], ds.Y[0:ds_size]))
+
             for specification in exp2_specs: # evaluate each given specification for in context models, useful for ablations
 
-                # sample an input dataset from ground truth
-                ds_input = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5,
-                                                 bounds=bounds)
+                ds_input = ds_input_dict[specification['train_specs']['dataset_size']]
 
                 save_path = specification['save_path']
                 trained_in_context_models = specification['trained_models']
@@ -161,7 +178,7 @@ def run_experiments(exp2_specs, nop_specs=None):
 
                         # plotting is flawed, need to give different input to amortized model / cf
                         # sample an input dataset from ground truth
-                        ds_input_plot = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model, x_dist='uniform', noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+                        ds_input_plot = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model, x_dist=x_dist, noise_std=0.5, bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
                         Y_predplot, params_predplot = in_context_model.predict(torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
                                                                                Xplot.unsqueeze(0))
@@ -222,12 +239,8 @@ default_specs = {
     },
     'losses': losses,
     'save_path': './exp2_default',
-    'save_all': False
+    'save_all': False,
 }
 
-specs_1 = copy.deepcopy(default_specs)
-specs_2 = copy.deepcopy(default_specs)
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_dataset_size_1024_fixed_bounds'
-specs_3['train_specs']['dataset_size'] = 1024
-run_experiments([specs_3], nop_specs=None)
+run_experiments([specs_3], nop_specs=None, x_dist='uniform')

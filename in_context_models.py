@@ -250,7 +250,7 @@ class InContextModel(nn.Module):
             # In this case, the parameters consist of means and variances
             means, logvariances = torch.chunk(pred_params, 2, dim=-1)
 
-            pred_params = means
+            pred_params = (means, torch.exp(logvariances))
 
             eval_samples = 25 #TODO in config
 
@@ -262,7 +262,7 @@ class InContextModel(nn.Module):
         else: model_predictions = self.eval_model.forward(input, pred_params)  # (batch_size, dataset_size, dy)
 
         if self.normalize: model_predictions = renormalize(model_predictions, scales)
-        return model_predictions, pred_params
+        return model_predictions, pred_params, scales
 
     def compute_forward(self, batch):
         datasets_in, gt_params, gt_Y = batch
@@ -293,8 +293,8 @@ class InContextModel(nn.Module):
             logvariances = torch.clamp(logvariances, min=-10, max=10)
 
             if self.loss == 'forward-kl':
-                nll = -0.5 * (torch.exp(-logvariances) * (means - gt_params) ** 2 + logvariances + np.log(2 * torch.pi))
-                sum = -nll.sum(dim=-1)
+                nll = 0.5 * (torch.exp(-logvariances) * (means - gt_params) ** 2 + logvariances + np.log(2 * torch.pi))
+                sum = nll.sum(dim=-1)
                 #return torch.sum((gt_params-means)**2/torch.exp(logvariances) + logvariances, dim=-1).mean(), datasets_in, datasets_in_Y, pred_params, None
                 return sum.mean(), datasets_in, datasets_in_Y, pred_params, None
 

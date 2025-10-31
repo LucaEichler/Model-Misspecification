@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import init
 
 import config
-from config import dataset_size_classical, device, weight_decay_classical as weight_decay
+from config import dataset_size_classical, device, weight_decay_classical as weight_decay, basis_function_scaling_factors
 from sample import sample_normal
 
 
@@ -247,20 +247,20 @@ class Linear(nn.Module):
             outer_products = torch.einsum('ni,nj->nij', x, x)  # (batch size, dx, dx)
             idxs = torch.triu_indices(outer_products.size(1), outer_products.size(2))
             outer_products = outer_products[:, idxs[0],
-                             idxs[1]]  # keep only upper triangular matrix to remove duplicate terms
+                             idxs[1]] *basis_function_scaling_factors['poly2'] #divide by 100 max range of x^2  # keep only upper triangular matrix to remove duplicate terms
             phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1 + dx + dx*(dx+1)/2)
 
             if self.order >= 3:
                 outer_products = torch.einsum('ni,nj,nk->nijk', x,x,x) # (batch size, dx, dx, dx)
                 idxs = monomial_indices(self.dx, 3)
-                outer_products = outer_products[:, idxs[:,0], idxs[:,1], idxs[:,2]]
+                outer_products = outer_products[:, idxs[:,0], idxs[:,1], idxs[:,2]] *basis_function_scaling_factors['poly3'] #divide by 1000 max range of x^3
                 phi = torch.cat((phi, outer_products), dim=1)
 
         if self.nonlinear_features_enabled:
             # note that the next line also accounts for the normalized case
             products = torch.pi / 10 * torch.einsum('bi,j->bij', x if scales is None else x*(scales[:,0:3,1]-scales[:,0:3,0])+scales[:,0:3,0], torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
-            cos_features = torch.cos(products)
-            sin_features = torch.sin(products)
+            cos_features = torch.cos(products) * basis_function_scaling_factors['fourier'] # divide by 2
+            sin_features = torch.sin(products) * basis_function_scaling_factors['fourier'] # to get y-range of 1
             phi = torch.cat((phi, cos_features), dim=1)
             phi = torch.cat((phi, sin_features), dim=1)
 
@@ -274,7 +274,7 @@ class Linear(nn.Module):
 
             diff = x[:, None, :] - centers
             sq_dist = ((diff ** 2)/(2*(s**2))).sum(dim=2)
-            gauss_features = torch.exp(-sq_dist)
+            gauss_features = torch.exp(-sq_dist) * basis_function_scaling_factors['exp']
 
             phi = torch.cat((phi, gauss_features), dim=1)
 

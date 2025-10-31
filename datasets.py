@@ -10,12 +10,13 @@ from config import device
 from test4 import NonLinearRegression
 
 
-def gen_uniform_bounds(dim, min=-10., max=10.):
+def gen_uniform_bounds(dim, min=-10., max=10., fixed=False):
     bounds = torch.empty((dim,2))
     for i in range(dim):
         lohi = torch.empty(2).uniform_(-10, 10)
         lo, hi = lohi.min(), lohi.max()
-        lo, hi = -10., 10.
+        if fixed:
+            lo, hi = min, max
         bounds[i,0], bounds[i,1] = lo, hi
     return bounds
 
@@ -48,8 +49,7 @@ def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
     Y = model(X)
 
     noise = torch.normal(mean=0., std=noise_std, size=Y.shape, device = Y.device)
-    # add noise (old)
-    #noise = torch.randn_like(Y) * noise_std * (torch.max(Y)-torch.min(Y))
+
     Y_noisy = Y + noise
 
     return X.to(device), Y_noisy.detach(), Y.detach()
@@ -59,8 +59,10 @@ class PointDataset(Dataset):
     Dataset class used for classical models, elements of the datasets are (x,y) pairs
     """
 
-    def __init__(self, size, model, x_dist, noise_std=0.0, bounds=None):
+    def __init__(self, size, model, x_dist, noise_std=0.0, bounds=None, data=None):
         self.model = model.to(device)
+        if data is not None:
+            self.X, self.Y = data[0], data[1]
         self.X, self.Y, _ = sample_dataset(size, self.model, x_dist, noise_std, bounds)
 
     def __len__(self):

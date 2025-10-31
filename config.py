@@ -40,3 +40,9 @@ with open(config_path) as f:
     }
 
     load_best_model = config.get("load_best_model")
+
+    basis_function_scaling_factors = {}
+    basis_function_scaling_factors['poly3'] = 0.01
+    basis_function_scaling_factors['poly2'] = 0.1
+    basis_function_scaling_factors['fourier'] = 10.
+    basis_function_scaling_factors['exp'] = 10.

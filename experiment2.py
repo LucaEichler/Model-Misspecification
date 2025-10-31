@@ -88,7 +88,6 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
                         'model_name': model_name,
                         "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
                     )
-                    plot = True
                     if plot:
                         os.makedirs(nop_specs['save_path'] + "/plots/", exist_ok=True)
 
@@ -135,7 +134,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
                                                                                                       lambd=config.lambda_mle)
                     closed_form_prediction = in_context_model.eval_model.forward(ds_test.X.unsqueeze(0),
                                                                                  closed_form_params.unsqueeze(0))
-                    predictions, params = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
+                    predictions, params, _ = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
                                                                    ds_test.X.unsqueeze(0))
 
                     # plotting.plot_3d_surfaces(in_context_model.eval_model, in_context_model.eval_model, closed_form_params, params, gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name())
@@ -224,11 +223,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100,
+        'dataset_amount': 100000, #100,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 100,
+        'valset_size': 10000,
         'normalize': True
     },
     'early_stopping_params': {
@@ -242,6 +241,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
+specs_3['save_path'] = './exp2_uniform_fixed_gaussian'
 specs_3['train_specs']['normalize'] = False
-run_experiments([specs_3], nop_specs=None, x_dist='uniform-fixed')
+run_experiments([specs_3], nop_specs=None, x_dist='gaussian')

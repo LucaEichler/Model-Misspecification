@@ -68,77 +68,78 @@ def plot(gt_W, cf_W, rev_kl, mle_ds):
     plt.tight_layout()
     plt.show()
 
-dx,dy=3,1
-test_set_size=1000
-input_set_size = 128
-default_specs = {
-    'transformer_arch':
-     {
-        'dT': 256,
-        'num_heads': 4,
-        'num_layers': 8,
-        'output': 'attention-pool'
-    },
-    'train_specs':
-    {
-        'lr':0.0001,
-        'min_lr': 1e-6,
-        'weight_decay': 1e-5,
-        'dataset_amount': 10000, #100000,
-        'dataset_size': 128,
-        'num_iters': 1000000,
-        'batch_size': 100,
-        'valset_size': 1000, #10000,
-        'normalize': True
-    },
-    'early_stopping_params': {
-        'early_stopping_enabled': False,
-        'patience': 10,
-        'min_delta': 0.01,
-        'load_best': True
-    },
-    'save_path': './exp2_default',
-    'save_all': False
-}
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
-               ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+if __name__ == "__main__":
+    dx,dy=3,1
+    test_set_size=1000
+    input_set_size = 128
+    default_specs = {
+        'transformer_arch':
+         {
+            'dT': 256,
+            'num_heads': 4,
+            'num_layers': 8,
+            'output': 'attention-pool'
+        },
+        'train_specs':
+        {
+            'lr':0.0001,
+            'min_lr': 1e-6,
+            'weight_decay': 1e-5,
+            'dataset_amount': 10000, #100000,
+            'dataset_size': 128,
+            'num_iters': 1000000,
+            'batch_size': 100,
+            'valset_size': 1000, #10000,
+            'normalize': True
+        },
+        'early_stopping_params': {
+            'early_stopping_enabled': False,
+            'patience': 10,
+            'min_delta': 0.01,
+            'load_best': True
+        },
+        'save_path': './exp2_default',
+        'save_all': False
+    }
+    model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
+                   ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
+                   ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 
-# create and load trained in context model
-model_spec = model_specs[0]
-model_spec_training = model_spec[1].copy()
-model_spec_training.pop('feature_sampling_enabled', None)
-rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=True,
-                                         **model_spec_training)
-model_path = "./doublelayers_19102025/models/backward-kl Polynomial"
-checkpoint = torch.load(model_path+".pt", map_location=config.device)
-rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
+    # create and load trained in context model
+    model_spec = model_specs[0]
+    model_spec_training = model_spec[1].copy()
+    model_spec_training.pop('feature_sampling_enabled', None)
+    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=True,
+                                             **model_spec_training)
+    model_path = "./doublelayers_19102025/models/backward-kl Polynomial"
+    checkpoint = torch.load(model_path+".pt", map_location=config.device)
+    rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
 
-mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=True,
-                                         **model_spec_training)
-model_path = "./doublelayers_19102025/models/mle-dataset Polynomial"
-checkpoint = torch.load(model_path+".pt", map_location=config.device)
-mle_ds_model.load_state_dict(checkpoint["model_state_dict"])
+    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=True,
+                                             **model_spec_training)
+    model_path = "./doublelayers_19102025/models/mle-dataset Polynomial"
+    checkpoint = torch.load(model_path+".pt", map_location=config.device)
+    mle_ds_model.load_state_dict(checkpoint["model_state_dict"])
 
-# create a ground truth target function and sample datasets
-eval_spec=model_specs[1]
-gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-bounds = datasets.gen_uniform_bounds(dx)
-ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
-ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+    # create a ground truth target function and sample datasets
+    eval_spec=model_specs[1]
+    gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
+    bounds = datasets.gen_uniform_bounds(dx)
+    ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+    ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
 
-# closed form predictions
-cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
-cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+    # closed form predictions
+    cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+    cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
 
-# in context model predictions
-predictions, params_rev_kl, scales = rev_kl_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
-print(metrics.mse(predictions, ds_test.Y))
-predictions, params_mle_ds, scales = mle_ds_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
-print(metrics.mse(predictions, ds_test.Y))
+    # in context model predictions
+    predictions, params_rev_kl, scales = rev_kl_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
+    print(metrics.mse(predictions, ds_test.Y))
+    predictions, params_mle_ds, scales = mle_ds_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
+    print(metrics.mse(predictions, ds_test.Y))
 
 
-plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), params_rev_kl, params_mle_ds)
+    plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), params_rev_kl, params_mle_ds)
 
 
 def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):

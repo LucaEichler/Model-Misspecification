@@ -26,7 +26,7 @@ plot=False
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-params', 'mle-dataset', 'forward-kl', 'backward-kl']
+losses = ['mle-dataset']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -69,7 +69,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
 
             # create new ground truth model for evaluation
             gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-            bounds = datasets.gen_uniform_bounds(dx)
+            bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
 
             # test dataset, noise disabled to get target function values
             ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
@@ -224,11 +224,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 100,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 100,
         'normalize': True
     },
     'early_stopping_params': {
@@ -241,6 +241,7 @@ default_specs = {
     'save_path': './exp2_default',
     'save_all': False,
 }
-
 specs_3 = copy.deepcopy(default_specs)
-run_experiments([specs_3], nop_specs=None, x_dist='uniform')
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
+specs_3['train_specs']['normalize'] = False
+run_experiments([specs_3], nop_specs=None, x_dist='uniform-fixed')

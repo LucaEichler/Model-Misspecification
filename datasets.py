@@ -10,12 +10,12 @@ from config import device
 from test4 import NonLinearRegression
 
 
-def gen_uniform_bounds(dim, min=-10., max=10., fixed=False):
+def gen_uniform_bounds(dim, min=-10., max=10., x_dist="uniform"):
     bounds = torch.empty((dim,2))
     for i in range(dim):
         lohi = torch.empty(2).uniform_(-10, 10)
         lo, hi = lohi.min(), lohi.max()
-        if fixed:
+        if x_dist == "uniform_fixed":
             lo, hi = min, max
         bounds[i,0], bounds[i,1] = lo, hi
     return bounds
@@ -29,10 +29,11 @@ def sample_dataset(dataset_size, model, x_dist, noise_std=0.0, bounds=None):
     :param bounds: if using uniform mode, specific bounds for each dimension may be provided here
     :return tuple of X and Y of dataset points
     """
-    if x_dist == "uniform":
+    uniform = True if x_dist == "uniform" or "uniform-fixed" else False
+    if uniform:
         X = []
         if bounds is None:
-            bounds = gen_uniform_bounds(model.dx)
+            bounds = gen_uniform_bounds(model.dx, x_dist=x_dist)
         for i in range(model.dx):
             lo, hi = bounds[i, 0], bounds[i, 1]
 

@@ -86,13 +86,13 @@ if __name__ == "__main__":
             for i in range(trials):
                 # create new ground truth model for evaluation
                 gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-                bounds = datasets.gen_uniform_bounds(dx)
+                bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
 
                 # sample an input dataset from ground truth
-                ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+                ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
 
                 # test dataset, noise disabled to get target function values
-                ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
+                ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
 
                 predictions = model_trained(ds_test.X.unsqueeze(0), ds_input.X.unsqueeze(0), ds_input.Y.unsqueeze(0), mask=None)
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                     Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
                     Yplot = gt_model(Xplot)
 
-                    ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5,
+                    ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5,
                                                           bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
 
                     y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)

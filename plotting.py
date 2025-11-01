@@ -77,7 +77,7 @@ if __name__ == "__main__":
          {
             'dT': 256,
             'num_heads': 4,
-            'num_layers': 8,
+            'num_layers': 4,
             'output': 'attention-pool'
         },
         'train_specs':
@@ -111,26 +111,29 @@ if __name__ == "__main__":
     model_spec_training.pop('feature_sampling_enabled', None)
     rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=True,
                                              **model_spec_training)
-    model_path = "./doublelayers_19102025/models/backward-kl Polynomial"
+    model_path = "./exp2_off_run_20102025/models/backward-kl Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
     rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
 
-    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=True,
+    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=False,
                                              **model_spec_training)
-    model_path = "./doublelayers_19102025/models/mle-dataset Polynomial"
+    model_path = "./exp2_uniform_fixed_no_normalize_01112025/models/mle-dataset Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
     mle_ds_model.load_state_dict(checkpoint["model_state_dict"])
+
+    x_dist = 'uniform_fixed'
 
     # create a ground truth target function and sample datasets
     eval_spec=model_specs[1]
     gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-    bounds = datasets.gen_uniform_bounds(dx)
-    ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist='uniform', noise_std=0., bounds=bounds)
-    ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+    bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
+    ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
+    ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
 
     # closed form predictions
     cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
     cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+    print(metrics.mse(cf_pred, ds_test.Y))
 
     # in context model predictions
     predictions, params_rev_kl, scales = rev_kl_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
@@ -138,8 +141,12 @@ if __name__ == "__main__":
     predictions, params_mle_ds, scales = mle_ds_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
     print(metrics.mse(predictions, ds_test.Y))
 
+    normalize=False
+    if normalize:
+        plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), params_rev_kl, params_mle_ds)
+    else:
+        plot(gt_model.get_W()[None, :], cf_params.T, params_rev_kl, params_mle_ds)
 
-    plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), params_rev_kl, params_mle_ds)
 
 
 def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):

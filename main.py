@@ -139,7 +139,7 @@ def load_latest_checkpoint(model, optimizer=None, scheduler=None, dir="defaultdi
     path = os.path.join(dir, latest)
     print(f"Loading checkpoint: {path}")
 
-    checkpoint = torch.load(path)
+    checkpoint = torch.load(path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     if optimizer and "optimizer_state_dict" in checkpoint:
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])

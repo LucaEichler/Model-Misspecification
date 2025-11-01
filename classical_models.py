@@ -413,3 +413,38 @@ class LinearVariational(Linear):
 
     def _get_name(self):
         return super()._get_name() + "Variational"
+
+    import torch
+
+def bayes_linear_posterior(Phi, t, alpha, beta):
+    """
+    Phi: (N, M) design matrix
+    t:   (N,) or (N,1) targets
+    alpha: prior precision (scalar)
+    beta:  noise precision (scalar)
+    returns: m_N (M,), S_N (M,M) via cholesky factor or full S_N if desired
+    """
+    N, M = Phi.shape
+    t = t.reshape(N, 1)
+
+    # Posterior precision
+    SN_inv = alpha * torch.eye(M, dtype=Phi.dtype, device=Phi.device) + beta * (Phi.T @ Phi)
+    # Cholesky factorization of SN_inv: SN_inv = L @ L^T  (use torch.linalg.cholesky)
+    L = torch.linalg.cholesky(SN_inv)  # lower-triangular
+
+    # Solve for m_N: m_N = beta * S_N * Phi^T t
+    # Instead of computing S_N, solve SN_inv * m_N = beta * Phi^T t
+    rhs = beta * (Phi.T @ t)  # shape (M,1)
+    # Solve L y = rhs, then L^T m_N = y
+    y = torch.linalg.solve(L, rhs)
+    m_N = torch.linalg.solve(L.T, y)  # shape (M,1)
+
+    # If you need S_N explicitly (M x M), compute by solving for columns of I:
+    # S_N = inv(SN_inv) = (L^T)^{-1} @ L^{-1}
+    # Use solves to compute S_N efficiently:
+    identity = torch.eye(M, dtype=Phi.dtype, device=Phi.device)
+    # First solve L Z = I -> Z = L^{-1}
+    Z = torch.linalg.solve(L, identity)  # shape (M, M)
+    S_N = Z @ Z.T  # since inv(SN_inv) = L^{-T} L^{-1} = Z Z^T
+
+    return m_N.squeeze(-1), S_N, L

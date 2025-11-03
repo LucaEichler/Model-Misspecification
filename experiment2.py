@@ -7,6 +7,7 @@ import torch
 import config
 import datasets
 import main
+import metrics
 import plotting
 import seed
 import train_neuralop
@@ -134,6 +135,8 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
                                                                                                       lambd=config.lambda_mle)
                     closed_form_prediction = in_context_model.eval_model.forward(ds_test.X.unsqueeze(0),
                                                                                  closed_form_params.unsqueeze(0))
+                    posterior = in_context_model.eval_model.bayes_linear_posterior(ds_input.X, ds_input.Y)
+
                     predictions, params, _ = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
                                                                    ds_test.X.unsqueeze(0))
 
@@ -155,15 +158,24 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
                         "mse_rel_gd": mse_rel(predictions, ds_test.Y).item(),
                     })
 
-                    specification['results'][2].append({
+                    res_dict = {
                         "trial": i,
                         'gt': gt_model._get_name(),
                         'model_name': loss + " " + in_context_model.eval_model._get_name(),
-                        "mse_params_closed_form_gradient_descent": mse(closed_form_params, params).item(),
+                        # "mse_params_closed_form_gradient_descent": mse(closed_form_params, params).item(),
                         "mse_closed_form_gradient_descent": mse(closed_form_prediction, predictions).item(),
                         "mse_closed_form": mse(closed_form_prediction, ds_test.Y).item(),
                         "mse_gradient_descent": mse(predictions, ds_test.Y).item()
-                    })
+                    }
+
+                    if loss == 'backward-kl' or loss == 'forward-kl':
+                        fw_kl = metrics.KL_diag_gauss(params, posterior)
+                        bw_kl = metrics.KL_diag_gauss(posterior, params)
+                        res_dict["fw_kl"] = fw_kl
+                        res_dict["bw_kl"] = bw_kl
+                        res_dict["baseline_fwd"] = metrics.KL_diag_gauss((torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))), posterior)
+                        res_dict["baseline_rev"] = metrics.KL_diag_gauss(posterior, (torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))))
+                    specification['results'][2].append(res_dict)
 
 
                     # TODO generate input dataset of 128 points randomly from input space
@@ -223,11 +235,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 1, #100000,
         'dataset_size': 128,
-        'num_iters': 1000000,
+        'num_iters': 1,#1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 1, #10000,
         'normalize': True
     },
     'early_stopping_params': {
@@ -241,6 +253,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
-specs_3['train_specs']['normalize'] = False
+specs_3['save_path'] = './exp2_uniform_fixed_normalize'
+specs_3['train_specs']['normalize'] = True
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

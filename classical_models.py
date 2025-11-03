@@ -253,14 +253,14 @@ class Linear(nn.Module):
             if self.order >= 3:
                 outer_products = torch.einsum('ni,nj,nk->nijk', x,x,x) # (batch size, dx, dx, dx)
                 idxs = monomial_indices(self.dx, 3)
-                outer_products = outer_products[:, idxs[:,0], idxs[:,1], idxs[:,2]] *basis_function_scaling_factors['poly3'] #divide by 1000 max range of x^3
+                outer_products = outer_products[:, idxs[:,0], idxs[:,1], idxs[:,2]] * basis_function_scaling_factors['poly3'] #divide by 1000 max range of x^3
                 phi = torch.cat((phi, outer_products), dim=1)
 
         if self.nonlinear_features_enabled:
             # note that the next line also accounts for the normalized case
             products = torch.pi / 10 * torch.einsum('bi,j->bij', x if scales is None else x*(scales[:,0:3,1]-scales[:,0:3,0])+scales[:,0:3,0], torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
-            cos_features = torch.cos(products) * basis_function_scaling_factors['fourier'] # divide by 2
-            sin_features = torch.sin(products) * basis_function_scaling_factors['fourier'] # to get y-range of 1
+            cos_features = torch.cos(products) * basis_function_scaling_factors['fourier'] #
+            sin_features = torch.sin(products) * basis_function_scaling_factors['fourier'] #
             phi = torch.cat((phi, cos_features), dim=1)
             phi = torch.cat((phi, sin_features), dim=1)
 
@@ -322,6 +322,40 @@ class Linear(nn.Module):
 
     def set_W(self, W):
         self.W = W.view(self.W.shape)
+
+    def bayes_linear_posterior(self, x, y, alpha=1., beta=2.):
+        """
+        Phi: (N, M) design matrix
+        t:   (N,) or (N,1) targets
+        alpha: prior precision (scalar)
+        beta:  noise precision (scalar)
+        returns: m_N (M,), S_N (M,M) via cholesky factor or full S_N if desired
+        """
+        Phi = self.get_design_matrix(x)
+        N, M = Phi.shape
+        t = y.reshape(N, 1)
+
+        # Posterior precision
+        SN_inv = alpha * torch.eye(M, dtype=Phi.dtype, device=Phi.device) + beta * (Phi.T @ Phi)
+        # Cholesky factorization of SN_inv: SN_inv = L @ L^T  (use torch.linalg.cholesky)
+        L = torch.linalg.cholesky(SN_inv)  # lower-triangular
+
+        # Solve for m_N: m_N = beta * S_N * Phi^T t
+        # Instead of computing S_N, solve SN_inv * m_N = beta * Phi^T t
+        rhs = beta * (Phi.T @ t)  # shape (M,1)
+        # Solve L y = rhs, then L^T m_N = y
+        y = torch.linalg.solve(L, rhs)
+        m_N = torch.linalg.solve(L.T, y)  # shape (M,1)
+
+        # If you need S_N explicitly (M x M), compute by solving for columns of I:
+        # S_N = inv(SN_inv) = (L^T)^{-1} @ L^{-1}
+        # Use solves to compute S_N efficiently:
+        identity = torch.eye(M, dtype=Phi.dtype, device=Phi.device)
+        # First solve L Z = I -> Z = L^{-1}
+        Z = torch.linalg.solve(L, identity)  # shape (M, M)
+        S_N = Z @ Z.T  # since inv(SN_inv) = L^{-T} L^{-1} = Z Z^T
+
+        return m_N.squeeze(-1), torch.diagonal(S_N).unsqueeze(0)
 
     def compute_loss(self, batch):
         X, Y = batch
@@ -416,35 +450,4 @@ class LinearVariational(Linear):
 
     import torch
 
-def bayes_linear_posterior(Phi, t, alpha, beta):
-    """
-    Phi: (N, M) design matrix
-    t:   (N,) or (N,1) targets
-    alpha: prior precision (scalar)
-    beta:  noise precision (scalar)
-    returns: m_N (M,), S_N (M,M) via cholesky factor or full S_N if desired
-    """
-    N, M = Phi.shape
-    t = t.reshape(N, 1)
 
-    # Posterior precision
-    SN_inv = alpha * torch.eye(M, dtype=Phi.dtype, device=Phi.device) + beta * (Phi.T @ Phi)
-    # Cholesky factorization of SN_inv: SN_inv = L @ L^T  (use torch.linalg.cholesky)
-    L = torch.linalg.cholesky(SN_inv)  # lower-triangular
-
-    # Solve for m_N: m_N = beta * S_N * Phi^T t
-    # Instead of computing S_N, solve SN_inv * m_N = beta * Phi^T t
-    rhs = beta * (Phi.T @ t)  # shape (M,1)
-    # Solve L y = rhs, then L^T m_N = y
-    y = torch.linalg.solve(L, rhs)
-    m_N = torch.linalg.solve(L.T, y)  # shape (M,1)
-
-    # If you need S_N explicitly (M x M), compute by solving for columns of I:
-    # S_N = inv(SN_inv) = (L^T)^{-1} @ L^{-1}
-    # Use solves to compute S_N efficiently:
-    identity = torch.eye(M, dtype=Phi.dtype, device=Phi.device)
-    # First solve L Z = I -> Z = L^{-1}
-    Z = torch.linalg.solve(L, identity)  # shape (M, M)
-    S_N = Z @ Z.T  # since inv(SN_inv) = L^{-T} L^{-1} = Z Z^T
-
-    return m_N.squeeze(-1), S_N, L

@@ -37,10 +37,13 @@ from plotly.subplots import make_subplots
 import numpy as np
 
 
-def plot(gt_W, cf_W, rev_kl, mle_ds):
-    rev_kl_means, rev_kl_vars = rev_kl
-    rev_kl_means = rev_kl_means.detach().numpy()
-    rev_kl_vars = rev_kl_vars.detach().numpy()
+def plot(gt_W, cf_W, posterior, rev_kl, mle_ds):
+    if posterior is not None:
+        posterior_means, posterior_vars = posterior[0].detach().numpy(), posterior[1].detach().numpy()
+    if rev_kl is not None:
+        rev_kl_means, rev_kl_vars = rev_kl
+        rev_kl_means = rev_kl_means.detach().numpy()
+        rev_kl_vars = rev_kl_vars.detach().numpy()
 
     # Create 4x5 grid (total = 20 plots)
     fig, axes = plt.subplots(4,5, figsize=(15, 10))
@@ -55,17 +58,26 @@ def plot(gt_W, cf_W, rev_kl, mle_ds):
     for i, ax in enumerate(axes.flat):
         x = np.linspace(rev_kl_means[0, i]-3*rev_kl_vars[0, i], rev_kl_means[0, i]+3*rev_kl_vars[0, i], 500)
         x = np.linspace(-5, 5, 500)
-        y_rev_kl = norm.pdf(x, rev_kl_means[0, i], np.sqrt(rev_kl_vars[0, i]))
 
-        ax.plot(x, y_rev_kl, 'r-', lw=2, label='l', color='gray')
-        ax.axvline(cf_W[:, i].detach().numpy(), color='red', linestyle='--')
-        ax.axvline(gt_W[:, i].detach().numpy(), color='black', linestyle='dotted')
-        ax.axvline(mle_ds[0, i].detach().numpy(), color='orange', linestyle='dashdot')
+        if posterior is not None:
+            posterior = norm.pdf(x, posterior_means[0, i], np.sqrt(posterior_vars[0, i]))
+            ax.plot(x, posterior, lw=2, color='black', label='Posterior (closed form solution)')
+        if rev_kl is not None:
+            y_rev_kl = norm.pdf(x, rev_kl_means[0, i], np.sqrt(rev_kl_vars[0, i]))
+            ax.plot(x, y_rev_kl, lw=2, color='blue', label='Rev-KL')
+        #ax.axvline(cf_W[:, i].detach().numpy(), color='red', linestyle='--')
+        if gt_W is not None:
+            ax.axvline(gt_W[:, i].detach().numpy(), color='black', linestyle='dotted')
+        if mle_ds is not None:
+            ax.axvline(mle_ds[0, i].detach().numpy(), color='red', label='MLE-Dataset')
         ax.set_xlim(-4, 4)
 
         ax.set_title(f"Plot {i+1}")
 
-    plt.tight_layout()
+    handles, labels = ax.get_legend_handles_labels()  # from last axis
+    fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
 
 if __name__ == "__main__":
@@ -109,15 +121,15 @@ if __name__ == "__main__":
     model_spec = model_specs[0]
     model_spec_training = model_spec[1].copy()
     model_spec_training.pop('feature_sampling_enabled', None)
-    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=True,
+    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=False,
                                              **model_spec_training)
-    model_path = "./exp2_off_run_20102025/models/backward-kl Polynomial"
+    model_path = "./exp2_uniform_fixed_no_normalize_02112025/models/backward-kl Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
     rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
 
-    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=False,
+    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-params", normalize=False,
                                              **model_spec_training)
-    model_path = "./exp2_uniform_fixed_no_normalize_01112025/models/mle-dataset Polynomial"
+    model_path = "./exp2_uniform_fixed_no_normalize_02112025/models/mle-params Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
     mle_ds_model.load_state_dict(checkpoint["model_state_dict"])
 
@@ -133,7 +145,6 @@ if __name__ == "__main__":
     # closed form predictions
     cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
     cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
-    print(metrics.mse(cf_pred, ds_test.Y))
 
     # in context model predictions
     predictions, params_rev_kl, scales = rev_kl_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
@@ -141,11 +152,20 @@ if __name__ == "__main__":
     predictions, params_mle_ds, scales = mle_ds_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
     print(metrics.mse(predictions, ds_test.Y))
 
+    posterior = mle_ds_model.eval_model.bayes_linear_posterior(ds_input.X, ds_input.Y)
+    post_pred = mle_ds_model.eval_model.forward(ds_test.X.unsqueeze(0), posterior[0].unsqueeze(0))
+
+    print(metrics.mse(post_pred, ds_test.Y))
+    print(cf_params)
+    print(posterior[0].unsqueeze(1).T)
+
+
     normalize=False
     if normalize:
-        plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), params_rev_kl, params_mle_ds)
+        plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), (posterior[0].unsqueeze(1), posterior[1]), params_mle_ds)
     else:
-        plot(gt_model.get_W()[None, :], cf_params.T, params_rev_kl, params_mle_ds)
+        #gt_model.get_W()[None, :]
+        plot(None, cf_params.T, (posterior[0].unsqueeze(1).T, posterior[1]), params_rev_kl, params_mle_ds)
 
 
 

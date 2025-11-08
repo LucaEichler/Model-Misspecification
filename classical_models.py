@@ -355,7 +355,7 @@ class Linear(nn.Module):
         Z = torch.linalg.solve(L, identity)  # shape (M, M)
         S_N = Z @ Z.T  # since inv(SN_inv) = L^{-T} L^{-1} = Z Z^T
 
-        return m_N.squeeze(-1), torch.diagonal(S_N).unsqueeze(0)
+        return m_N.squeeze(-1), S_N.unsqueeze(0)
 
     def compute_loss(self, batch):
         X, Y = batch
@@ -381,13 +381,13 @@ class Linear(nn.Module):
         phi = self.get_design_matrix(x)
         return torch.linalg.pinv(phi) @ y
 
-    def closed_form_solution_regularized(self, x, y, lambd):
+    def closed_form_solution_regularized(self, x, y, lambd, scales=None):
         #TODO: Implement for variational methods too
         #TODO: Find out if intercept should be regularized or not
         if self.feature_sampling_enabled:
             warnings.warn("trying to compute a closed form solution for a model which"
                           "has feature sampling enabled - therefore it should be used for sampling data only")
-        phi = self.get_design_matrix(x)
+        phi = self.get_design_matrix(x, scales)
         return torch.linalg.solve(lambd*torch.eye(phi.size(-1), device=config.device) + phi.T @ phi, phi.T @ y)
 
 

@@ -37,48 +37,70 @@ from plotly.subplots import make_subplots
 import numpy as np
 
 
-def plot(gt_W, cf_W, posterior, rev_kl, mle_ds):
-    if posterior is not None:
-        posterior_means, posterior_vars = posterior[0].detach().numpy(), posterior[1].detach().numpy()
-    if rev_kl is not None:
-        rev_kl_means, rev_kl_vars = rev_kl
-        rev_kl_means = rev_kl_means.detach().numpy()
-        rev_kl_vars = rev_kl_vars.detach().numpy()
+def plot(gt_W, posterior_means, params_list, style_list):
 
     # Create 4x5 grid (total = 20 plots)
     fig, axes = plt.subplots(4,5, figsize=(15, 10))
 
-    min = np.min(rev_kl_means)
-    max = np.max(rev_kl_means)
-
-    min = min-(min*0.2)
-    max = max+(max*0.2)
-
     # axes is a 2D array of Axes objects
     for i, ax in enumerate(axes.flat):
-        x = np.linspace(rev_kl_means[0, i]-3*rev_kl_vars[0, i], rev_kl_means[0, i]+3*rev_kl_vars[0, i], 500)
         x = np.linspace(-5, 5, 500)
+        for params, style in zip(params_list, style_list):
+            color, label, linestyle, alpha = style
+            if isinstance(params, tuple):
+                means, vars = params[0].detach().numpy(), params[1].detach().numpy()
+                y = norm.pdf(x, means[0, i], np.sqrt(vars[0, i]))
+                ax.plot(x, y, lw=1, color=color, label=label, linestyle=linestyle, alpha=alpha)
 
-        if posterior is not None:
-            posterior = norm.pdf(x, posterior_means[0, i], np.sqrt(posterior_vars[0, i]))
-            ax.plot(x, posterior, lw=2, color='black', label='Posterior (closed form solution)')
-        if rev_kl is not None:
-            y_rev_kl = norm.pdf(x, rev_kl_means[0, i], np.sqrt(rev_kl_vars[0, i]))
-            ax.plot(x, y_rev_kl, lw=2, color='blue', label='Rev-KL')
-        #ax.axvline(cf_W[:, i].detach().numpy(), color='red', linestyle='--')
+            else:
+                ax.axvline(params[0, i].detach().numpy(), color=color, label=label, linestyle=linestyle, alpha=alpha, lw=2)
+
+        if posterior_means is not None:
+            ax.axvline(posterior_means[i].detach().numpy(), color='black', label='Posterior (closed form solution)', lw=1)
         if gt_W is not None:
             ax.axvline(gt_W[:, i].detach().numpy(), color='black', linestyle='dotted')
-        if mle_ds is not None:
-            ax.axvline(mle_ds[0, i].detach().numpy(), color='red', label='MLE-Dataset')
-        ax.set_xlim(-4, 4)
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(-0.5, 5)
 
-        ax.set_title(f"Plot {i+1}")
+        ax.set_title(f"Parameter {i+1}")
 
     handles, labels = ax.get_legend_handles_labels()  # from last axis
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False)
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
+
+def plot_params(models, style_list, eval_spec, x_dist):
+
+    # create a ground truth target function and sample datasets
+    gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
+    bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
+    ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
+    ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+
+    params_list = []
+
+    for icm in models:
+        predictions, params, scales = icm.predict(
+            torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
+        params_list.append(params)
+
+    if normalize:
+        xynorm, scales = in_context_models.normalize_input(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0).transpose(0, 1))
+
+    # closed form predictions
+    if normalize:
+        cf_params = models[0].eval_model.closed_form_solution_regularized(xynorm.squeeze(1)[:, 0:3], xynorm.squeeze(1)[:, 3],
+                                                                         lambd=config.lambda_mle, scales=None)
+        cf_pred = in_context_models.renormalize(models[0].eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), cf_params.unsqueeze(0), scales=scales), scales)
+
+        #model_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), params_mle_ds.unsqueeze(0), scales=scales), scales)
+    else:
+        cf_params = models[0].eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+        cf_pred = models[0].eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+
+    plot(None, cf_params, params_list, style_list)
+
 
 if __name__ == "__main__":
     dx,dy=3,1
@@ -116,57 +138,86 @@ if __name__ == "__main__":
     model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                    ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                    ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+    x_dist = 'uniform_fixed'
+    normalize = False
 
-    # create and load trained in context model
+
+    def plot_models(model_specs, style_list, model_assumption_spec, eval_spec, normalize, x_dist):
+        model_spec_training = model_assumption_spec[1].copy()
+        model_spec_training.pop('feature_sampling_enabled', None)
+        model_list = []
+        for elem in model_specs:
+            loss, arch_spec,  model_path = elem
+            model = in_context_models.InContextModel(dx, dy, arch_spec, model_assumption_spec[0],
+                                             loss=loss, normalize=normalize,
+                                             **model_spec_training)
+            checkpoint = torch.load(model_path + ".pt", map_location=config.device)
+            model.load_state_dict(checkpoint["model_state_dict"])
+            model_list.append(model)
+        plot_params(model_list, style_list, eval_spec, x_dist)
+
+
+    style_list = [("blue", "Rev-KL", "solid", 0.75), ("red", "MLE-Dataset", "solid", 0.), ("green", "Fwd-KL", "solid", 0.5)]
+    p1 = "./exp2_uniform_fixed_no_normalize_02112025/models/backward-kl Polynomial"
+    p2 = "./exp2_uniform_fixed_normalize_08112025/models/mle-dataset Polynomial"
+    p3 = "./exp2_uniform_fixed_no_normalize_02112025/models/forward-kl Polynomial"
+    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[0], model_specs[1], normalize, x_dist)
+
+    """# create and load trained in context model
     model_spec = model_specs[0]
     model_spec_training = model_spec[1].copy()
     model_spec_training.pop('feature_sampling_enabled', None)
-    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=False,
+    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=normalize,
                                              **model_spec_training)
     model_path = "./exp2_uniform_fixed_no_normalize_02112025/models/backward-kl Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
     rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
 
-    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-params", normalize=False,
+    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=normalize,
                                              **model_spec_training)
-    model_path = "./exp2_uniform_fixed_no_normalize_02112025/models/mle-params Polynomial"
+    model_path = "./exp2_uniform_fixed_no_normalize_03112025/models/mle-dataset Polynomial"
     checkpoint = torch.load(model_path+".pt", map_location=config.device)
-    mle_ds_model.load_state_dict(checkpoint["model_state_dict"])
+    mle_ds_model.load_state_dict(checkpoint["model_state_dict"])"""
 
-    x_dist = 'uniform_fixed'
 
-    # create a ground truth target function and sample datasets
-    eval_spec=model_specs[1]
-    gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
-    bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
-    ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
-    ds_input = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+
+
+    #print(metrics.mse(predictions, ds_test.Y))
+
+    """if normalize:
+        xynorm, scales = in_context_models.normalize_input(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0).transpose(0, 1))
 
     # closed form predictions
-    cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
-    cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+    if normalize:
+        cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(xynorm.squeeze(1)[:, 0:3], xynorm.squeeze(1)[:, 3],
+                                                                         lambd=config.lambda_mle, scales=None)
+        cf_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), cf_params.unsqueeze(0), scales=scales), scales)
 
-    # in context model predictions
-    predictions, params_rev_kl, scales = rev_kl_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
-    print(metrics.mse(predictions, ds_test.Y))
-    predictions, params_mle_ds, scales = mle_ds_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
-    print(metrics.mse(predictions, ds_test.Y))
+        model_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), params_mle_ds.unsqueeze(0), scales=scales), scales)
+    else:
+        cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+        cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+
 
     posterior = mle_ds_model.eval_model.bayes_linear_posterior(ds_input.X, ds_input.Y)
-    post_pred = mle_ds_model.eval_model.forward(ds_test.X.unsqueeze(0), posterior[0].unsqueeze(0))
+    #post_pred = mle_ds_model.eval_model.forward(ds_test.X.unsqueeze(0), posterior[0].unsqueeze(0))
 
-    print(metrics.mse(post_pred, ds_test.Y))
-    print(cf_params)
-    print(posterior[0].unsqueeze(1).T)
+    print(metrics.mse(cf_pred, ds_test.Y))
+    #print(posterior[0].unsqueeze(1).T)
+
+    ex = np.arange(100)
+    #plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
+    plt.scatter(ex, model_pred.flatten().detach().numpy()[500:600], color='blue')
+    plt.scatter(ex, ds_test.Y.flatten().detach().numpy()[500:600], color='red')
+    plt.show()
 
 
-    normalize=False
     if normalize:
-        plot(in_context_models.normalize_params(gt_model.get_W()[None, :], scales), in_context_models.normalize_params(cf_params.T, scales), (posterior[0].unsqueeze(1), posterior[1]), params_mle_ds)
+        plot(None, None, (posterior, torch.ones_like(posterior)), None, params_mle_ds)
     else:
         #gt_model.get_W()[None, :]
         plot(None, cf_params.T, (posterior[0].unsqueeze(1).T, posterior[1]), params_rev_kl, params_mle_ds)
-
+"""
 
 
 def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):

@@ -34,3 +34,27 @@ def KL_diag_gauss(dist1, dist2):
         dim=-1  # sum over feature dimension
     )
     return KL_div
+
+
+def kl_mvn(dist0, dist1):
+    (m0, S0) = dist0
+    (m1, S1) = dist1
+    """
+    Computes KL(N(m0, S0) || N(m1, S1)) for full covariance matrices.
+    m*: shape (d,), S*: shape (d,d).
+    """
+    N = m0.shape[0]
+
+    # use slogdet for numerical stability
+    sign0, logdet0 = torch.linalg.slogdet(S0)
+    sign1, logdet1 = torch.linalg.slogdet(S1)
+    assert sign0 > 0 and sign1 > 0, "Covariance matrices must be positive-definite"
+
+    iS1 = torch.linalg.inv(S1)
+    diff = m1 - m0
+
+    tr_term = torch.trace(iS1 @ S0)
+    quad_term = diff.T @ iS1 @ diff
+    det_term = logdet1 - logdet0
+
+    return 0.5 * (tr_term + quad_term + det_term - N)

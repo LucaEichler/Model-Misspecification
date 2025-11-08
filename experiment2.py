@@ -24,10 +24,11 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True})]
+eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-dataset']
+losses = ['mle-dataset', 'mle-params', 'backward-kl', 'forward-kl']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -64,7 +65,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
 
             nop_models.append((model, model_name, model_path))
 
-    for eval_spec in model_specs: # evaluate on every ground truth data distribution
+    for eval_spec in eval_specs: # evaluate on every ground truth data distribution
 
         for i in range(trials): # average over T trials
 
@@ -169,12 +170,15 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
                     }
 
                     if loss == 'backward-kl' or loss == 'forward-kl':
-                        fw_kl = metrics.KL_diag_gauss(params, posterior)
-                        bw_kl = metrics.KL_diag_gauss(posterior, params)
+                        posterior = (posterior[0], posterior[1].squeeze(0))
+                        mat = torch.eye(20) * params[1]
+                        pred_dist = (params[0].squeeze(0), mat)
+                        fw_kl = metrics.kl_mvn(pred_dist, posterior)
+                        bw_kl = metrics.kl_mvn(posterior, pred_dist)
                         res_dict["fw_kl"] = fw_kl
                         res_dict["bw_kl"] = bw_kl
-                        res_dict["baseline_fwd"] = metrics.KL_diag_gauss((torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))), posterior)
-                        res_dict["baseline_rev"] = metrics.KL_diag_gauss(posterior, (torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))))
+                        #res_dict["baseline_fwd"] = metrics.kl_mvn((torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))), posterior)
+                        #res_dict["baseline_rev"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))))
                     specification['results'][2].append(res_dict)
 
 
@@ -253,6 +257,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_normalize'
-specs_3['train_specs']['normalize'] = True
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_poly'
+specs_3['train_specs']['normalize'] = False
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

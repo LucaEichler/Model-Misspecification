@@ -23,6 +23,7 @@ dx=3
 dy=1
 dh=100
 validation_frequency = 1000
+x_dist = 'uniform_fixed'
 
 mse_nn = torch.empty((tries, len(sizes)))
 mse_closed_form = torch.empty((tries, len(sizes)))
@@ -33,18 +34,18 @@ mse_closed_form_range = torch.empty((tries, len(sizes)))
 
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
-    bounds = datasets.gen_uniform_bounds(dx)
-    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+    bounds = datasets.gen_uniform_bounds(dx, x_dist)
+    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
     for i in range(len(sizes)):
         dataset_size = sizes[i] #16*2**i
-        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
-        ds_val = datasets.PointDataset(size=val_set_size, model=gt_model, x_dist='uniform', noise_std=0.5, bounds=bounds)
+        ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+        ds_val = datasets.PointDataset(size=val_set_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
 
         # 'dummy' model for computing closed form solution
         model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True).to(config.device)
 
         params_mle = model.closed_form_solution_regularized(ds.X.to(config.device), ds.Y.to(config.device),
-                                                            lambd=config.lambda_mle * dataset_size)
+                                                            lambd=config.lambda_mle)
 
         Y_pred_closed_form = model.forward(test_set.X.unsqueeze(0), params_mle.unsqueeze(0))
         gt_Y = gt_model(test_set.X)
@@ -53,7 +54,7 @@ for j in range(tries):
         model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters,
                          batch_size=100,
-                         lr=config.lr_classical, use_wandb=config.wandb_enabled)
+                         lr=config.lr_classical, weight_decay=config.weight_decay_classical, use_wandb=config.wandb_enabled, save_path=None)
 
         Y_pred_nn = model_nn(test_set.X)
 

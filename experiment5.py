@@ -59,8 +59,8 @@ if mode == "generate":
     for i in range(gen_iterations):
         gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
 
-        if x_dist == 'uniform':
-            bounds = datasets.gen_uniform_bounds(dx)
+        if x_dist == 'uniform' or x_dist == 'uniform_fixed':
+            bounds = datasets.gen_uniform_bounds(dx, x_dist)
         else:   bounds = torch.tensor([-2, 2, -2, 2, -2, 2]).reshape(dx, 2)
 
         test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)

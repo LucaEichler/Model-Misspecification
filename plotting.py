@@ -1,3 +1,5 @@
+import math
+
 import matplotlib.pyplot as plt
 import torch
 from plotly.subplots import make_subplots
@@ -37,13 +39,29 @@ from plotly.subplots import make_subplots
 import numpy as np
 
 
-def plot(gt_W, posterior_means, params_list, style_list):
+def best_subplot_shape(n):
+    """
+    Given n subplots, returns (nrows, ncols)
+    that form the most square/compact rectangular grid.
+    """
+    if n < 1:
+        raise ValueError("n must be >= 1")
+
+    # Start from the square root to get close to square
+    ncols = math.ceil(math.sqrt(n))
+    nrows = math.ceil(n / ncols)
+    return nrows, ncols
+
+def plot(gt_W, posterior_means, params_list, style_list, save_name):
 
     # Create 4x5 grid (total = 20 plots)
-    fig, axes = plt.subplots(4,5, figsize=(15, 10))
+    n_params = params_list[0][0].size(-1)
+    nrows, ncols = best_subplot_shape(n_params)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(15, 10))
 
     # axes is a 2D array of Axes objects
     for i, ax in enumerate(axes.flat):
+        if i >= n_params: continue
         x = np.linspace(-5, 5, 500)
         for params, style in zip(params_list, style_list):
             color, label, linestyle, alpha = style
@@ -53,14 +71,14 @@ def plot(gt_W, posterior_means, params_list, style_list):
                 ax.plot(x, y, lw=1, color=color, label=label, linestyle=linestyle, alpha=alpha)
 
             else:
-                ax.axvline(params[0, i].detach().numpy(), color=color, label=label, linestyle=linestyle, alpha=alpha, lw=2)
+                ax.axvline(params[0, i].detach().numpy(), color=color, label=label, linestyle=linestyle, alpha=alpha, lw=1)
 
         if posterior_means is not None:
-            ax.axvline(posterior_means[i].detach().numpy(), color='black', label='Posterior (closed form solution)', lw=1)
+            ax.axvline(posterior_means[i].detach().numpy(), color='black', label='Posterior (closed form solution)', alpha = 0.5, lw=1)
         if gt_W is not None:
             ax.axvline(gt_W[:, i].detach().numpy(), color='black', linestyle='dotted')
         ax.set_xlim(-5, 5)
-        ax.set_ylim(-0.5, 5)
+        ax.set_ylim(-0.5, 2)
 
         ax.set_title(f"Parameter {i+1}")
 
@@ -68,9 +86,9 @@ def plot(gt_W, posterior_means, params_list, style_list):
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False)
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+    plt.savefig(save_name)
 
-def plot_params(models, style_list, eval_spec, x_dist):
+def plot_params(models, style_list, eval_spec, x_dist, save_name):
 
     # create a ground truth target function and sample datasets
     gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
@@ -84,6 +102,8 @@ def plot_params(models, style_list, eval_spec, x_dist):
         predictions, params, scales = icm.predict(
             torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
         params_list.append(params)
+        print(save_name)
+        print(metrics.mse(predictions, ds_test.Y))
 
     if normalize:
         xynorm, scales = in_context_models.normalize_input(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0).transpose(0, 1))
@@ -99,7 +119,7 @@ def plot_params(models, style_list, eval_spec, x_dist):
         cf_params = models[0].eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
         cf_pred = models[0].eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
 
-    plot(None, cf_params, params_list, style_list)
+    plot(None, cf_params, params_list, style_list, save_name)
 
 
 if __name__ == "__main__":
@@ -154,14 +174,15 @@ if __name__ == "__main__":
             checkpoint = torch.load(model_path + ".pt", map_location=config.device)
             model.load_state_dict(checkpoint["model_state_dict"])
             model_list.append(model)
-        plot_params(model_list, style_list, eval_spec, x_dist)
+        for i in range(30):
+            plot_params(model_list, style_list, eval_spec, x_dist,  save_name="./plots/"+str(i)+".svg")
 
 
     style_list = [("blue", "Rev-KL", "solid", 0.75), ("red", "MLE-Dataset", "solid", 0.), ("green", "Fwd-KL", "solid", 0.5)]
-    p1 = "./exp2_uniform_fixed_no_normalize_02112025/models/backward-kl Polynomial"
-    p2 = "./exp2_uniform_fixed_normalize_08112025/models/mle-dataset Polynomial"
-    p3 = "./exp2_uniform_fixed_no_normalize_02112025/models/forward-kl Polynomial"
-    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[0], model_specs[1], normalize, x_dist)
+    p1 = "./exp2_uniform_fixed_no_normalize_03112025/models/backward-kl Nonlinear"
+    p2 = "./exp2_uniform_fixed_no_normalize_03112025/models/mle-dataset Nonlinear"
+    p3 = "./exp2_uniform_fixed_no_normalize_03112025/models/forward-kl Nonlinear"
+    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[1], model_specs[1], normalize, x_dist)
 
     """# create and load trained in context model
     model_spec = model_specs[0]

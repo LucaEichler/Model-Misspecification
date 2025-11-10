@@ -24,7 +24,9 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True})]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
+               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
+               ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
@@ -257,6 +259,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_poly'
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
 specs_3['train_specs']['normalize'] = False
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

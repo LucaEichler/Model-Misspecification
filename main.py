@@ -206,7 +206,8 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
         try:
             batch = next(data_iter)
         except StopIteration:
-            data_iter = iter(dataloader)  # restart for fresh epoch
+            dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+            data_iter = iter(dataloader) # restart for fresh epoch
             batch = next(data_iter)
 
         loss = train_step(model, optimizer, batch, scheduler, it+start_iter)

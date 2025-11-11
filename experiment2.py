@@ -30,7 +30,7 @@ model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-dataset', 'mle-params', 'backward-kl', 'forward-kl']
+losses = ['mle-params', 'forward-kl', 'backward-kl', 'mle-dataset']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -173,7 +173,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist='uniform'):
 
                     if loss == 'backward-kl' or loss == 'forward-kl':
                         posterior = (posterior[0], posterior[1].squeeze(0))
-                        mat = torch.eye(20) * params[1]
+                        mat = torch.eye(params[1].size(-1)) * params[1]
                         pred_dist = (params[0].squeeze(0), mat)
                         fw_kl = metrics.kl_mvn(pred_dist, posterior)
                         bw_kl = metrics.kl_mvn(posterior, pred_dist)
@@ -241,11 +241,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 10, #100000,
         'dataset_size': 128,
-        'num_iters': 1000000,
+        'num_iters': 1, #1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 10, #10000,
         'normalize': True
     },
     'early_stopping_params': {

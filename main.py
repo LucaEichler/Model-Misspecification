@@ -292,8 +292,9 @@ def eval_plot_nn(name, Y_gt, X_eval, Y_pred):
     plt.figure(figsize=(6, 4))
     plt.scatter(X_eval.detach().cpu().numpy(), Y_gt.detach().cpu().numpy())
     plt.xlim(0, 1)
-    plt.xlim(-5, 5)
+    plt.xlim(-10, 10)
     plt.ylim(Y_gt.min().item(), Y_gt.max().item())
+    plt.ylim(-10, 10)
     plt.scatter(X_eval.detach().cpu().numpy(), Y_pred.detach().cpu().numpy(), color='orange')
     plt.text(0.01, 0.99, "nn- "+name, transform=plt.gca().transAxes,
             fontsize=12, verticalalignment='top', horizontalalignment='left')

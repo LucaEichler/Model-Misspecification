@@ -1,8 +1,10 @@
 import math
 
+import numpy as np
 import pandas as pd
 import torch
 import scipy.stats as stats
+from matplotlib import pyplot as plt
 
 import config
 import datasets
@@ -12,10 +14,10 @@ from main import train, eval_plot
 import seed
 from metrics import mse, mse_rel, mse_range
 
-seed.set_seed(1)
+seed.set_seed(0)
 
 num_iters= 1000000
-tries = 100
+tries = 50
 sizes = [50, 200, 500, 2000, 5000, 20000, 50000]
 test_set_size=10000
 val_set_size=10000
@@ -35,7 +37,7 @@ mse_closed_form_range = torch.empty((tries, len(sizes)))
 for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
     bounds = datasets.gen_uniform_bounds(dx, x_dist)
-    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+    test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0.0, bounds=bounds)
     for i in range(len(sizes)):
         dataset_size = sizes[i] #16*2**i
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
@@ -71,9 +73,19 @@ for j in range(tries):
         with open("./exp3_mse.csv", "a") as f:
             f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
 
-        # visualize in normalized space
+        ex = np.arange(100)
+        plt.xlim(-1, 101)
+        plt.ylim(torch.min(test_set.Y[1000:1100]), torch.max(test_set.Y[1000:1100]))
+        idx = torch.argsort(test_set.Y[1000:1100].flatten())+1000
+        # plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
+        plt.scatter(ex, Y_pred_nn[idx].flatten().detach().numpy(), color='blue')
+        plt.scatter(ex, test_set.Y[idx].flatten().detach().numpy(), color='red')
 
-        start = bounds[:, 0]
+        plt.savefig("./plots/" + "nn - " + str(i))
+        plt.show()
+        plt.close()
+
+        """start = bounds[:, 0]
         end = bounds[:, 1]
 
         # number of points along the line
@@ -83,7 +95,10 @@ for j in range(tries):
         t = torch.linspace(0., 1., N).unsqueeze(1)  # shape (N,1)
         line = start + t * (end - start)  # shape (N,3)
 
-        Xplot = line.to(config.device)
+        t = torch.linspace(-10., 10., N).unsqueeze(1)  # shape (N,1)
+
+
+        Xplot = t.to(config.device)
         Yplot = gt_model(Xplot)
 
         Y_predplot = model_nn(Xplot)
@@ -91,6 +106,7 @@ for j in range(tries):
         main.eval_plot_nn(str(i), Yplot, t, Y_predplot)
 
         #Y_pred_mle = model.forward(Xplot.unsqueeze(0), params_mle.unsqueeze(0))
+"""
 
 
 def mean_and_ci(values, confidence=0.95):  #TODO: put in utility file and merge with main.py standard error computation

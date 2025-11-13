@@ -75,11 +75,11 @@ for j in range(tries):
 
         ex = np.arange(100)
         plt.xlim(-1, 101)
-        plt.ylim(torch.min(test_set.Y[1000:1100]), torch.max(test_set.Y[1000:1100]))
-        idx = torch.argsort(test_set.Y[1000:1100].flatten())+1000
+        plt.ylim(torch.min(test_set.Y[1000:1100].cpu()), torch.max(test_set.Y[1000:1100].cpu()))
+        idx = torch.argsort(test_set.Y[1000:1100].cpu().flatten())+1000
         # plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
-        plt.scatter(ex, Y_pred_nn[idx].flatten().detach().numpy(), color='blue')
-        plt.scatter(ex, test_set.Y[idx].flatten().detach().numpy(), color='red')
+        plt.scatter(ex, Y_pred_nn[idx].flatten().detach().cpu().numpy(), color='blue')
+        plt.scatter(ex, test_set.Y[idx].flatten().detach().cpu().numpy(), color='red')
 
         plt.savefig("./plots/" + "nn - " + str(i))
         plt.show()

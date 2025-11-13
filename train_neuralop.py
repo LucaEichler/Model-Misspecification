@@ -39,7 +39,7 @@ default_specs = {
         'load_best': True
     },
     #'losses': losses,
-    'save_path': './neural_op_default',
+    'save_path': './nop13112025',
     'save_all': False
 }
 specs = default_specs
@@ -70,7 +70,7 @@ if __name__ == "__main__":
                               lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
                               early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,
                               min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
-         # test neural operator - plots ?
+        # test neural operator - plots ?
 
 
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                 plot = True
                 if plot:
                     os.makedirs(specs['save_path'] + "/plots/", exist_ok=True)
-                    plotting.plot_regression_on_dataset(ds_test.Y[200:300], predictions.squeeze(0)[200:300], name=specs['save_path'] + "/plots/"+str(i))
+                    plotting.plot_regression_on_dataset(ds_test.Y[200:300], predictions.squeeze(0)[200:300], name=specs['save_path'] + "/plots/"+model_name+"_"+gt_model._get_name()+str(i))
     df = pd.DataFrame(results)
     df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
     df_avg.to_csv(specs['save_path'] + "/neuralop.csv", index=False)

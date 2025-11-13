@@ -7,6 +7,7 @@ import config
 import datasets
 import in_context_models
 import main
+import plotting
 from main import train_in_context_models
 import seed
 from classical_models import Linear, NonLinear
@@ -14,15 +15,15 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "train" # "generate"
+mode = "generate"
 dx = 3
 dy = 1
 dh = 100
 
-filename = "exp5_params_gauss.csv"  # file to save training data in
-filename_error = "./exp5_mse_gauss.csv" # file to save the MSE ("data quality") of the parameters
+filename = "exp5_params_uniform_fixed.csv"  # file to save training data in
+filename_error = "./exp5_mse_uniform_fixed.csv" # file to save the MSE ("data quality") of the parameters
 #filename_train = "./exp5_data_train.csv" # use different filename for train so that generate does not accidently write into it
-filename_bounds = "./exp5_bounds1.csv" # use different filename for train so that generate does not accidently write into it
+filename_bounds = "./exp5_bounds_uniform_fixed.csv" # use different filename for train so that generate does not accidently write into it
 
 test_set_size = 10000
 dataset_size = 20000
@@ -30,7 +31,7 @@ num_iters = 1000000
 gen_iterations = 100000 # how many parameters to generate
 validation_frequency = 1000
 normalize = False # use normalized data for training neural networks
-x_dist = 'gaussian'
+x_dist = 'uniform_fixed'
 weight_decay = 1e-5
 lr = 0.01
 
@@ -38,7 +39,7 @@ early_stopping_params = {
         'early_stopping_enabled': True,
         'patience': 10,
         'min_delta': 0.01,
-        'load_best': False
+        'load_best': True
     }
 
 if mode == "generate":
@@ -70,14 +71,17 @@ if mode == "generate":
 
         x_norm, y_norm, x_scale, y_scale = norm_fct(ds)
         ds.X, ds.Y = x_norm, y_norm
-        ds_val.X, ds_val.Y = norm_to_scale_fct(ds_val.X, x_scale), norm_to_scale_fct(ds_val.Y, y_scale)
+        if normalize:
+            ds_val.X, ds_val.Y = norm_to_scale_fct(ds_val.X, x_scale), norm_to_scale_fct(ds_val.Y, y_scale)
 
         model_nn = NonLinear(dx=dx, dy=dy, dh=dh)
         model_nn = train(model_nn, ds, valset=ds_val, valfreq=validation_frequency, iterations=num_iters, batch_size=100,
                          lr=lr, weight_decay=config.weight_decay_classical, use_wandb=False, save_path=None, early_stopping_params=early_stopping_params)
 
         gt_Y = gt_model(test_set.X)
-        Y_pred_nn = renorm_fct(model_nn(norm_to_scale_fct(test_set.X, x_scale)), y_scale)
+
+        Y_pred_nn = model_nn(test_set.X)
+        #Y_pred_nn = renorm_fct(model_nn(norm_to_scale_fct(test_set.X, x_scale)), y_scale)
 
         mse_nn = torch.mean((Y_pred_nn - gt_Y) ** 2)
         mse_nn_rel = torch.sum((Y_pred_nn - gt_Y) ** 2) / torch.sum(gt_Y ** 2)
@@ -94,8 +98,11 @@ if mode == "generate":
                 f.write(",".join(map(str, bounds.flatten().tolist())) + "\n")
 
 
-        # visualize in normalized space
+        # visualize in normalized
+        plotting.plot_regression_on_dataset(test_set.Y, Y_pred_nn, "./plots/exp5_plot"+str(i))
 
+
+        """
         start = bounds[:, 0]
         end = bounds[:, 1]
 
@@ -112,7 +119,7 @@ if mode == "generate":
         Y_predplot = model_nn(norm_to_scale_fct(Xplot, x_scale))
 
         main.eval_plot_nn(str(i), Yplot, t, Y_predplot)
-
+        """
 
 
 elif mode == "train":

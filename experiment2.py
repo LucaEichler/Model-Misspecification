@@ -259,6 +259,7 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
 specs_3['train_specs']['normalize'] = False
+specs_3['train_specs']['dataset_size'] = 1024
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

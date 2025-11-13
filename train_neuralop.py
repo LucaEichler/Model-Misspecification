@@ -39,7 +39,7 @@ default_specs = {
         'load_best': True
     },
     #'losses': losses,
-    'save_path': './nop13112025',
+    'save_path': './neural_op',
     'save_all': False
 }
 specs = default_specs

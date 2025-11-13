@@ -6,6 +6,7 @@ import torch
 import config
 import datasets
 import main
+import plotting
 from main import train
 from metrics import mse
 from neuralop import InterpolationModel
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     results=[]
     for model_spec in model_specs:
         model = InterpolationModel()
-        x_dist='uniform'
+        x_dist='uniform_fixed'
         noise_std=0.5
         dx, dy = 3,1
         model_name = "nop_"+eval(model_spec[0])(dx=dx, dy=dy, **model_spec[1])._get_name()
@@ -105,19 +106,7 @@ if __name__ == "__main__":
                 plot = True
                 if plot:
                     os.makedirs(specs['save_path'] + "/plots/", exist_ok=True)
-
-                    Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
-                    Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
-                    Yplot = gt_model(Xplot)
-
-                    ds_input_plot = datasets.PointDataset(input_set_size, gt_model, x_dist=x_dist, noise_std=0.5,
-                                                          bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
-
-                    y_pred = model_trained(Xplot.unsqueeze(0), ds_input_plot.X.unsqueeze(0), ds_input_plot.Y.unsqueeze(0), mask=None)
-
-                    main.eval_plot(gt_model._get_name() + " " + str(i), model_name,
-                                   gt_model, Xplot[:, 0], y_pred.squeeze(0), None, savepath=specs['save_path'])
-
+                    plotting.plot_regression_on_dataset(ds_test.Y[200:300], predictions.squeeze(0)[200:300], name=specs['save_path'] + "/plots/"+str(i))
     df = pd.DataFrame(results)
     df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
     df_avg.to_csv(specs['save_path'] + "/neuralop.csv", index=False)

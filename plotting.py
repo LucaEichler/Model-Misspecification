@@ -14,7 +14,18 @@ import plotly.graph_objects as go
 
 from main import train
 
+def plot_regression_on_dataset(y_test, y_pred, name):
+    ex = np.arange(y_test.size(0))
+    plt.xlim(-1, y_test.size(0))
+    plt.ylim(torch.min(y_test.cpu()), torch.max(y_test.cpu()))
+    idx = torch.argsort(y_test.cpu().flatten())
+    # plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
+    plt.scatter(ex, y_pred[idx].flatten().detach().cpu().numpy(), color='blue')
+    plt.scatter(ex, y_test[idx].flatten().detach().cpu().numpy(), color='red')
 
+    plt.savefig(name)
+    plt.show()
+    plt.close()
 
 def normalize_minus1_1(x):
     # Compute min and max

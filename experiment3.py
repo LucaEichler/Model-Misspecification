@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 import config
 import datasets
 import main
+import plotting
 from classical_models import Linear, NonLinear
 from main import train, eval_plot
 import seed
@@ -16,7 +17,7 @@ from metrics import mse, mse_rel, mse_range
 
 seed.set_seed(0)
 
-num_iters= 1000000
+num_iters = 1000000
 tries = 50
 sizes = [50, 200, 500, 2000, 5000, 20000, 50000]
 test_set_size=10000
@@ -73,17 +74,8 @@ for j in range(tries):
         with open("./exp3_mse.csv", "a") as f:
             f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
 
-        ex = np.arange(100)
-        plt.xlim(-1, 101)
-        plt.ylim(torch.min(test_set.Y[1000:1100].cpu()), torch.max(test_set.Y[1000:1100].cpu()))
-        idx = torch.argsort(test_set.Y[1000:1100].cpu().flatten())+1000
-        # plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
-        plt.scatter(ex, Y_pred_nn[idx].flatten().detach().cpu().numpy(), color='blue')
-        plt.scatter(ex, test_set.Y[idx].flatten().detach().cpu().numpy(), color='red')
-
-        plt.savefig("./plots/" + "nn - " + str(i))
-        plt.show()
-        plt.close()
+        name="./plots/" + "nn - " + str(i)
+        plotting.plot_regression_on_dataset(test_set.Y[1000:1100], Y_pred_nn[1000:1100], name)
 
         """start = bounds[:, 0]
         end = bounds[:, 1]

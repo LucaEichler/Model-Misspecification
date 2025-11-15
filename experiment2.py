@@ -138,8 +138,6 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                                                                                                       lambd=config.lambda_mle)
                     closed_form_prediction = in_context_model.eval_model.forward(ds_test.X.unsqueeze(0),
                                                                                  closed_form_params.unsqueeze(0))
-                    if in_context_model.eval_model._get_name() == "Nonlinear":
-                        print(metrics.mse(closed_form_prediction, ds_test.Y))
                     posterior = in_context_model.eval_model.bayes_linear_posterior(ds_input.X, ds_input.Y)
 
                     predictions, params, _ = in_context_model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),

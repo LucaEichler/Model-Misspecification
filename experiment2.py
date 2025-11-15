@@ -24,13 +24,11 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
-               ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),]
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-params', 'forward-kl', 'backward-kl', 'mle-dataset']
+losses = ['mle-params', 'backward-kl', 'mle-dataset']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -259,6 +257,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_03112025'
-specs_3['train_specs']['normalize'] = False
-run_experiments([specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')
+specs_3['save_path'] = './exp2_uniform_fixed_normalize_new'
+specs_3['train_specs']['normalize'] = True
+run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

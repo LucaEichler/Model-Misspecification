@@ -234,51 +234,67 @@ class Linear(nn.Module):
 
 
     def get_design_matrix(self, x, scales=None):
-        batch_size = x.size(0)
+        if x.dim() < 3:
+            x = x.unsqueeze(1)
 
         # bias
-        ones = torch.ones((batch_size, 1)).to(self.sample_W().device)  # (batch_size, 1)
+        ones = torch.ones((x.size(0), x.size(1), 1)).to(self.sample_W().device)  # (batch_size, 1)
 
         # basis function vectors
-        phi = torch.cat((ones, x), dim=1)  # (batch_size, dx+1)
+        phi = torch.cat((ones, x), dim=-1)  # (batch_size, dx+1)
 
         # calculate the outer product of each input vector with itself to get all second order basis functions
         if self.order >= 2:
-            outer_products = torch.einsum('ni,nj->nij', x, x)  # (batch size, dx, dx)
-            idxs = torch.triu_indices(outer_products.size(1), outer_products.size(2))
-            outer_products = outer_products[:, idxs[0],
+            outer_products = torch.einsum('bni,bnj->bnij', x, x)  # (batch size, dx, dx)
+            idxs = torch.triu_indices(outer_products.size(-1), outer_products.size(-1))
+            outer_products = outer_products[:, :, idxs[0],
                              idxs[1]] *basis_function_scaling_factors['poly2'] #divide by 100 max range of x^2  # keep only upper triangular matrix to remove duplicate terms
-            phi = torch.cat((phi, outer_products), dim=1)  # (batch_size, 1 + dx + dx*(dx+1)/2)
+            phi = torch.cat((phi, outer_products), dim=-1)  # (batch_size, 1 + dx + dx*(dx+1)/2)
 
             if self.order >= 3:
-                outer_products = torch.einsum('ni,nj,nk->nijk', x,x,x) # (batch size, dx, dx, dx)
+                outer_products = torch.einsum('bni,bnj,bnk->bnijk', x,x,x) # (batch size, dx, dx, dx)
                 idxs = monomial_indices(self.dx, 3)
-                outer_products = outer_products[:, idxs[:,0], idxs[:,1], idxs[:,2]] * basis_function_scaling_factors['poly3'] #divide by 1000 max range of x^3
-                phi = torch.cat((phi, outer_products), dim=1)
+                outer_products = outer_products[:, :, idxs[:,0], idxs[:,1], idxs[:,2]] * basis_function_scaling_factors['poly3'] #divide by 1000 max range of x^3
+                phi = torch.cat((phi, outer_products), dim=-1)
 
-        if self.nonlinear_features_enabled:
-            # note that the next line also accounts for the normalized case
-            products = torch.pi / 10 * torch.einsum('bi,j->bij', x if scales is None else x*(scales[:,0:3,1]-scales[:,0:3,0])+scales[:,0:3,0], torch.tensor([1,2,3], dtype=x.dtype, device = config.device)).view(batch_size, -1)
-            cos_features = torch.cos(products) * basis_function_scaling_factors['fourier'] #
-            sin_features = torch.sin(products) * basis_function_scaling_factors['fourier'] #
-            phi = torch.cat((phi, cos_features), dim=1)
-            phi = torch.cat((phi, sin_features), dim=1)
+            # ---- Nonlinear features ----
+            if self.nonlinear_features_enabled:
+                # --- Fourier features ---
+                if scales is not None:
+                    # Repeat scales along seq_len dimension
+                    sc = scales[:, None, 0:self.dx, :]  # (B, 1, dx, 2)
+                    x_scaled = x * (sc[..., 1] - sc[..., 0]) + sc[..., 0]  # (B, seq_len, dx)
+                else:
+                    x_scaled = x
 
-            coords = torch.tensor([-7.5, 0., 7.5], device=config.device)
-            a, b, c = torch.meshgrid(coords, coords, coords, indexing='ij')
-            centers = torch.stack([a, b, c], dim=-1).view(-1, 3)
-            s=torch.ones_like(centers)*4.5
-            if scales is not None:  # In case of normalization, we are given scales to recalculate the centers and sizes
-                centers = (centers[None, :, :]-scales[:,0:3,0])/(scales[:,0:3, 1]-scales[:,0:3,0])
-                s = s[None, :, :]/(scales[:,0:3, 1]-scales[:,0:3,0])
+                j = torch.tensor([1, 2, 3], dtype=x.dtype, device=x.device)  # Fourier multiples
+                products = torch.pi / 10 * torch.einsum('abc,k->abck', x_scaled, j)  # (B, seq_len, dx)
+                products = products.view(x.size(0), x.size(1), -1)
 
-            diff = x[:, None, :] - centers
-            sq_dist = ((diff ** 2)/(2*(s**2))).sum(dim=2)
-            gauss_features = torch.exp(-sq_dist) * basis_function_scaling_factors['exp']
+                cos_features = torch.cos(products) * basis_function_scaling_factors['fourier']
+                sin_features = torch.sin(products) * basis_function_scaling_factors['fourier']
+                phi = torch.cat((phi, cos_features, sin_features), dim=-1)
 
-            phi = torch.cat((phi, gauss_features), dim=1)
+                # --- Gaussian RBF features ---
+                coords = torch.tensor([-7.5, 0., 7.5], device=x.device)
+                a, b, c = torch.meshgrid(coords, coords, coords, indexing='ij')
+                centers = torch.stack([a, b, c], dim=-1).view(-1, 3)  # (27, 3)
+                s = torch.ones_like(centers) * 4.5
 
+                if scales is not None:
+                    centers_scaled = (centers[None, :, :] - scales[:, None, 0:3, 0]) / \
+                                     (scales[:, None, 0:3, 1] - scales[:, None, 0:3, 0])  # (B, 27, 3)
+                    s_scaled = s[None, :, :] / (scales[:, None, 0:3, 1] - scales[:, None, 0:3, 0])  # (B, 27, 3)
+                    diff = x[:, :, None, :] - centers_scaled[:, None, :, :]  # (B, seq_len, 27, 3)
+                else:
+                    diff = x[:, :, None, :] - centers[None, :, :]  # (1, seq_len, 27, 3)
+                    s_scaled = s[None, :, :]  # (1, 27, 3)
+
+                sq_dist = ((diff ** 2) / (2 * s_scaled[:, None, :, :] ** 2)).sum(dim=-1)  # (B, seq_len, 27)
+                gauss_features = torch.exp(-sq_dist) * basis_function_scaling_factors['exp']
+                phi = torch.cat((phi, gauss_features), dim=-1)
         return phi
+
 
     def sample_W(self):
         return self.W
@@ -298,18 +314,15 @@ class Linear(nn.Module):
             W = W.view(W.size(0), self.dy, self.K)
             batch_size = x.size(0) * x.size(1)
             prev_size = x.size(1)
-            x = x.view(batch_size, x.size(2))
 
 
         phi = self.get_design_matrix(x, scales)
 
         # bias
-        ones = torch.ones((batch_size, 1)).to(device)  # (batch_size, 1)
-
         if batched:
-            phi = phi.view(W.size(0), prev_size, phi.size(1)).to(device)
             return torch.bmm(W, phi.transpose(1, 2)).transpose(1, 2)
 
+        phi = phi.squeeze(1)
         # perform matrix multiplication (multiply the weight matrix W with the
         # basis function vector phi of dimensionality K)
         return torch.matmul(self.sample_W(), phi.T).T  # (batch_size, dy)

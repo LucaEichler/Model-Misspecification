@@ -279,11 +279,6 @@ class InContextModel(nn.Module):
         datasets_in_Y = datasets_in[:, :, self.dx:self.dx + self.dy]  # the y values for every point in every dataset
 
 
-
-        """for i in range(datasets_in_X.size(0)):
-            plt.scatter(datasets_in_X[i, :, :].detach().numpy(), datasets_in_Y[i, :, :].detach().numpy())
-            plt.show()"""
-
         # Given a dataset, the transformer predicts some parameters
         # Transpose such that sequence length is first dimension
         pred_params, scales = self(datasets_in.transpose(0, 1))
@@ -308,7 +303,7 @@ class InContextModel(nn.Module):
             pred_params = means + torch.randn_like(means) * torch.exp(logvariances) #TODO check sampling correct, chatgpt says a factor of 0.5 is needed
 
         # Compute the model predictions. For the point estimate, pred_
-        model_predictions = self.eval_model.forward(datasets_in_X, pred_params)  # (batch_size, dataset_size, dy)
+        model_predictions = self.eval_model.forward(datasets_in_X, pred_params, scales)  # (batch_size, dataset_size, dy)
 
         if self.normalize:
             model_predictions = renormalize(model_predictions, scales)

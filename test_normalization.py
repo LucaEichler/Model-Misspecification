@@ -9,6 +9,8 @@ import in_context_models
 from classical_models import Linear
 from datasets import PointDataset, gen_uniform_bounds
 
+
+# create a target function (non-sparse) and sample a dataset from it
 gt_model = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
 dataset = PointDataset(1000, gt_model, x_dist='uniform', noise_std=0., bounds=gen_uniform_bounds(dim=3))
 X, Y = dataset.X, dataset.Y

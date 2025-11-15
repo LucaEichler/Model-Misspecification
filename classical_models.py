@@ -344,7 +344,7 @@ class Linear(nn.Module):
         beta:  noise precision (scalar)
         returns: m_N (M,), S_N (M,M) via cholesky factor or full S_N if desired
         """
-        Phi = self.get_design_matrix(x)
+        Phi = self.get_design_matrix(x).squeeze(1)
         N, M = Phi.shape
         t = y.reshape(N, 1)
 
@@ -395,12 +395,11 @@ class Linear(nn.Module):
         return torch.linalg.pinv(phi) @ y
 
     def closed_form_solution_regularized(self, x, y, lambd, scales=None):
-        #TODO: Implement for variational methods too
-        #TODO: Find out if intercept should be regularized or not
         if self.feature_sampling_enabled:
             warnings.warn("trying to compute a closed form solution for a model which"
                           "has feature sampling enabled - therefore it should be used for sampling data only")
         phi = self.get_design_matrix(x, scales)
+        phi = phi.squeeze(1)
         return torch.linalg.solve(lambd*torch.eye(phi.size(-1), device=config.device) + phi.T @ phi, phi.T @ y)
 
 
@@ -461,6 +460,5 @@ class LinearVariational(Linear):
     def _get_name(self):
         return super()._get_name() + "Variational"
 
-    import torch
 
 

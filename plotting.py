@@ -193,7 +193,7 @@ if __name__ == "__main__":
     p1 = "./exp2_uniform_fixed_no_normalize_03112025/models/backward-kl Nonlinear"
     p2 = "./exp2_uniform_fixed_no_normalize_03112025/models/mle-dataset Nonlinear"
     p3 = "./exp2_uniform_fixed_no_normalize_03112025/models/forward-kl Nonlinear"
-    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[1], model_specs[1], normalize, x_dist)
+    #plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[1], model_specs[1], normalize, x_dist)
 
     """# create and load trained in context model
     model_spec = model_specs[0]
@@ -327,11 +327,17 @@ def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
 
 import config
 
-#model2 = Linear(dx=3, dy=1, order=3, nonlinear_features_enabled=True, feature_sampling_enabled=False)
+"""model2 = Linear(dx=3, dy=1, order=1, feature_sampling_enabled=True)
+model3 = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
+bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
+ds_input = datasets.PointDataset(128, model2, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+ds_test = datasets.PointDataset(1000, model2, x_dist=x_dist, noise_std=0., bounds=bounds)
 #model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
-
-#plot_3d_surfaces(model2, model2, None, W2=model2.closed_form_solution_regularized(ds.X, ds.Y, lambd=config.lambda_mle))
-
+cf_params = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+cf_prediction = model3.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+print(metrics.mse(cf_prediction, ds_test.Y))
+plot_3d_surfaces(model2, model3, W1=None, W2=model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle))
+"""
 def plot_predictions(gt_model, model):
     """
     Plot the predictions of a training model against the ground truth.

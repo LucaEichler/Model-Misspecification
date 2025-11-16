@@ -39,6 +39,14 @@ for j in range(tries):
     gt_model = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
     bounds = datasets.gen_uniform_bounds(dx, x_dist)
     test_set = datasets.PointDataset(size=test_set_size, model=gt_model, x_dist=x_dist, noise_std=0.0, bounds=bounds)
+
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=len(sizes),
+        figsize=(4 * len(sizes), 4),
+        squeeze=False
+    )
+
     for i in range(len(sizes)):
         dataset_size = sizes[i] #16*2**i
         ds = datasets.PointDataset(size=dataset_size, model=gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
@@ -74,31 +82,18 @@ for j in range(tries):
         with open("./exp3_mse.csv", "a") as f:
             f.write(str(mse_nn[j, i].item()) + " " + str(mse_closed_form[j, i].item()) + "\n")
 
-        name="./plots/" + "nn - " + str(i)
-        plotting.plot_regression_on_dataset(test_set.Y[1000:1100], Y_pred_nn[1000:1100], name)
+        #name="./plots/" + "nn " + str(j) + " " + str(i)
+        #plotting.plot_regression_on_dataset(test_set.Y[1000:1100], Y_pred_nn[1000:1100], name)
 
-        """start = bounds[:, 0]
-        end = bounds[:, 1]
+        ax = axes[0][i]
+        plotting.plot_regression_on_dataset_ax(test_set.Y[1000:1100], Y_pred_nn[1000:1100], ax)
+        ax.set_title(f"N={dataset_size}")
+        ax.set_xticks([])
 
-        # number of points along the line
-        N = 25
+    plt.tight_layout()
+    plt.savefig(f"./plots/trial_{j}.pdf")
+    plt.close()
 
-        # linear interpolation for each coordinate
-        t = torch.linspace(0., 1., N).unsqueeze(1)  # shape (N,1)
-        line = start + t * (end - start)  # shape (N,3)
-
-        t = torch.linspace(-10., 10., N).unsqueeze(1)  # shape (N,1)
-
-
-        Xplot = t.to(config.device)
-        Yplot = gt_model(Xplot)
-
-        Y_predplot = model_nn(Xplot)
-
-        main.eval_plot_nn(str(i), Yplot, t, Y_predplot)
-
-        #Y_pred_mle = model.forward(Xplot.unsqueeze(0), params_mle.unsqueeze(0))
-"""
 
 
 def mean_and_ci(values, confidence=0.95):  #TODO: put in utility file and merge with main.py standard error computation

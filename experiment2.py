@@ -259,6 +259,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_normalize'
-specs_3['train_specs']['normalize'] = True
+specs_3['save_path'] = './exp2_uniform_fixed_no_grad_norm'
+specs_3['train_specs']['normalize'] = False
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

@@ -27,6 +27,16 @@ def plot_regression_on_dataset(y_test, y_pred, name):
     plt.show()
     plt.close()
 
+def plot_regression_on_dataset_ax(y_test, y_pred, ax):
+    ex = np.arange(y_test.size(0))
+    ax.set_xlim(-1, y_test.size(0))
+    ax.set_ylim(float(torch.min(y_test.cpu())), float(torch.max(y_test.cpu())))
+
+    idx = torch.argsort(y_test.cpu().flatten())
+
+    ax.scatter(ex, y_pred[idx].flatten().detach().cpu().numpy(), color='blue')
+    ax.scatter(ex, y_test[idx].flatten().detach().cpu().numpy(), color='red')
+
 def normalize_minus1_1(x):
     # Compute min and max
     x_min = x.min()

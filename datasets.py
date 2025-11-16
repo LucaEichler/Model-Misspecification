@@ -100,6 +100,13 @@ class ContextDataset(Dataset):
         self.data = []
         self.y_gt = []
         self.params = []
+        self.kwargs=kwargs
+        self.model_class = model_class
+        self.dx=dx
+        self.dy=dy
+        self.ds_size=ds_size
+        self.noise_std=noise_std
+        self.x_dist = x_dist
 
         W = None
         bound = None
@@ -134,8 +141,50 @@ class ContextDataset(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :].to(device), self.params[idx].to(device), self.y_gt[idx, :].to(device)
 
+        # ---- choose W and bound if available ----
+        W = None
+        bound = None
+
+        # ---- sample a fresh dataset ----
+        model = eval(self.model_class)(self.dx, self.dy, init_W=W, **self.kwargs).to(device)
+
+        X, Y, Y_gt = sample_dataset(
+            self.ds_size, model, self.x_dist, self.noise_std, bound
+        )
+
+        # NOTE: X,Y,Y_gt are newly sampled *every time* __getitem__ is called
+        data = torch.cat((X, Y), dim=1)
+
+        return data.to(device), model.get_W().to(device), Y_gt.to(device)
+
+    def get_batch(self, batch_size):
+        data = []
+        y_gt = []
+        params = []
+        for i in range(batch_size):
+
+
+            # Create new model which will be underlying this dataset
+            model = eval(self.model_class)(self.dx, self.dy, **self.kwargs).to(device)
+            X, Y, Y_gt = sample_dataset(self.ds_size, model, self.x_dist, self.noise_std, None)
+            data.append(torch.cat((X, Y), dim=1))
+            params.append(model.get_W())
+            y_gt.append(Y_gt)
+
+        # Store the actual datasets...
+        data = torch.stack(data, dim=0)
+        # ...and the parameters that were used to generate them
+        params = torch.stack(params, dim=0)
+
+        # ...and for neural operator methods also ground truth values
+        y_gt = torch.stack(y_gt, dim=0)
+
+        return data, params, y_gt
+
+    """def __getitem__(self, idx):
+        return self.data[idx, :].to(device), self.params[idx].to(device), self.y_gt[idx, :].to(device)
+"""
 
 class ContextDatasetAlternative(Dataset):
     """
@@ -193,4 +242,3 @@ class ContextDatasetStream(Dataset):
         # ...and the parameters that were used to generate them
         params = torch.cat(params, dim=0)
         return data.to(device), params.to(device)
-

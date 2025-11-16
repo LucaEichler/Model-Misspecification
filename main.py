@@ -203,13 +203,14 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
     tqdm_batch = tqdm(range(start_iter, iterations), unit="batch", ncols=100, leave=True, initial=start_iter)
     best_val_loss = torch.tensor(float('inf'))
     for it in tqdm_batch:
-        try:
+        """try:
             batch = next(data_iter)
         except StopIteration:
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
             data_iter = iter(dataloader) # restart for fresh epoch
             batch = next(data_iter)
-
+"""
+        batch = dataset.get_batch(batch_size)
         loss = train_step(model, optimizer, batch, scheduler, it+start_iter)
         if use_wandb:
             wandb.log({"loss": loss.item(), "iteration": it+start_iter})
@@ -219,8 +220,8 @@ def train(model, dataset, valset, valfreq, iterations, batch_size, lr, weight_de
             val_loss, val_i = 0., 0.
 
             with torch.no_grad():
-                for batch in valloader:
-                    model.eval()
+                for i in range(10):
+                    batch = dataset.get_batch(100)
                     val_loss += model.compute_loss(batch)
                     val_i += 1.
                 val_loss = val_loss/val_i

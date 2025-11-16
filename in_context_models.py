@@ -265,7 +265,7 @@ class InContextModel(nn.Module):
                 param_sample = means + torch.randn_like(logvariances)*torch.exp(logvariances)
                 model_predictions += self.eval_model.forward(input, param_sample)
             model_predictions /= float(eval_samples)
-        else: model_predictions = self.eval_model.forward(input, pred_params)  # (batch_size, dataset_size, dy)
+        else: model_predictions = self.eval_model.forward(input, pred_params, scales)  # (batch_size, dataset_size, dy)
 
         if self.normalize: model_predictions = renormalize(model_predictions, scales)
         return model_predictions, pred_params, scales

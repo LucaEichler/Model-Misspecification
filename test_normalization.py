@@ -16,7 +16,7 @@ x_dist = 'uniform_fixed'
 
 # create a target function (non-sparse) and sample a dataset from it
 gt_model = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
-dataset = PointDataset(1000, gt_model, x_dist='uniform', noise_std=0., bounds=gen_uniform_bounds(x_dist=x_dist, dim=3))
+dataset = PointDataset(1000, gt_model, x_dist=x_dist, noise_std=0., bounds=gen_uniform_bounds(x_dist=x_dist, dim=3))
 X, Y = dataset.X, dataset.Y
 params = gt_model.get_W()
 

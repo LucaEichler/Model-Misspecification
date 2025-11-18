@@ -14,6 +14,96 @@ import plotly.graph_objects as go
 
 from main import train
 
+def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
+    surfaces = []
+    surfaces2 = []
+    N = 10
+
+    x_min, y_min = -10., -10.
+    x_max, y_max = 10., 10.
+    x_points, y_points = 20, 20
+    x = torch.linspace(x_min, x_max, x_points)
+    y = torch.linspace(y_min, y_max, y_points)
+    X1, X2 = torch.meshgrid(x, y, indexing='ij')
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        specs=[[{'type': 'surface'}, {'type': 'surface'}]],
+        horizontal_spacing=0.05
+    )
+
+    # Compute global z-range across all frames
+    z_min, z_max = float('inf'), -float('inf')
+    for k in range(N):
+        x3 = float(k)*2-10.
+        points = torch.stack([X1.reshape(-1), X2.reshape(-1), x3*torch.ones_like(X1).reshape(-1)], dim=-1)
+
+        Y = model1(points.unsqueeze(0), W=W1.unsqueeze(0)) if W1 is not None else model1(points)
+        Y2 = model2(points.unsqueeze(0), W=W2.unsqueeze(0)) if W2 is not None else model2(points)
+
+        z1 = Y.reshape(x_points, y_points).detach().cpu().numpy()
+        z2 = Y2.reshape(x_points, y_points).detach().cpu().numpy()
+        z_min = min(z_min, z1.min(), z2.min())
+        z_max = max(z_max, z1.max(), z2.max())
+
+        surfaces.append(go.Surface(x=X1, y= X2, z=z1, showscale=False, opacity=0.9))
+        surfaces2.append(go.Surface(x=X1, y= X2, z=z2, showscale=False, opacity=0.9))
+
+    # Add initial surfaces
+    fig.add_trace(surfaces[0], row=1, col=1)
+    fig.add_trace(surfaces2[0], row=1, col=2)
+
+    # Animation frames
+    frames = [go.Frame(data=[surfaces[k], surfaces2[k]]) for k in range(N)]
+    fig.frames = frames
+
+    # Animation controls
+    fig.update_layout(
+        updatemenus=[dict(
+            type="buttons",
+            buttons=[dict(
+                label="Play",
+                method="animate",
+                args=[None, {
+                    "frame": {"duration": 200, "redraw": True},
+                    "fromcurrent": True,
+                    "transition": {"duration": 0}
+                }]
+            )],
+            x=0.5, y=1.15, xanchor="center", yanchor="top"
+        )]
+    )
+
+    # 🔧 Fix scale for BOTH subplots
+    scene_settings = dict(
+        xaxis=dict(range=[x_min, x_max], autorange=False),
+        yaxis=dict(range=[y_min, y_max], autorange=False),
+        zaxis=dict(range=[z_min, z_max], autorange=False),
+        aspectmode='manual',
+        aspectratio=dict(x=1, y=1, z=0.5)
+    )
+
+    fig.update_layout(scene=scene_settings, scene2=scene_settings)
+
+    fig.write_html(f"./plots/{model_name} - {ds_name}.html")
+
+import config
+
+
+
+def plot_predictions(gt_model, model):
+    """
+    Plot the predictions of a training model against the ground truth.
+    """
+    #model2 = Linear(dx=1 ,dy=1, order=2)
+    #model2.W = torch.nn.Parameter(model.W)
+
+    X = torch.linspace(0, 1, 128*model.dx).view(128, 1*model.dx)
+    Y_gt = gt_model(X)
+    Y = model(X, plot=True)
+    plt.plot(X[:, 0].detach().numpy(), Y.detach().numpy())
+    plt.plot(X[:, 0].detach().numpy(), Y_gt.detach().numpy())
+    plt.show()
 def plot_regression_on_dataset(y_test, y_pred, name):
     ex = np.arange(y_test.size(0))
     plt.xlim(-1, y_test.size(0))
@@ -188,7 +278,7 @@ if __name__ == "__main__":
         model_spec_training.pop('feature_sampling_enabled', None)
         model_list = []
         for elem in model_specs:
-            loss, arch_spec,  model_path = elem
+            loss, arch_spec, model_path = elem
             model = in_context_models.InContextModel(dx, dy, arch_spec, model_assumption_spec[0],
                                              loss=loss, normalize=normalize,
                                              **model_spec_training)
@@ -205,159 +295,27 @@ if __name__ == "__main__":
     p3 = "./exp2_uniform_fixed_no_normalize_03112025/models/forward-kl Nonlinear"
     #plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[1], model_specs[1], normalize, x_dist)
 
-    """# create and load trained in context model
-    model_spec = model_specs[0]
-    model_spec_training = model_spec[1].copy()
+    loss, arch_spec, model_path = 'forward-kl', default_specs[
+        'transformer_arch'], "./exp2_uniform_fixed_fwd_stream18112025/models/forward-kl Polynomial"
+    model_spec_training = model_specs[0][1].copy()
     model_spec_training.pop('feature_sampling_enabled', None)
-    rev_kl_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="backward-kl", normalize=normalize,
+    model = in_context_models.InContextModel(dx, dy, arch_spec, model_specs[0][0],
+                                             loss=loss, normalize=normalize,
                                              **model_spec_training)
-    model_path = "./exp2_uniform_fixed_no_normalize_02112025/models/backward-kl Polynomial"
-    checkpoint = torch.load(model_path+".pt", map_location=config.device)
-    rev_kl_model.load_state_dict(checkpoint["model_state_dict"])
+    checkpoint = torch.load(model_path + ".pt", map_location=config.device)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model2 = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=True, nonlinear_features_enabled=True)
+    model3 = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False)
+    bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
+    ds_input = datasets.PointDataset(128, model2, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+    ds_test = datasets.PointDataset(1000, model2, x_dist=x_dist, noise_std=0., bounds=bounds)
+    # model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
+    cf_params = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+    cf_prediction = model3.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
+    _, pred_params, _1 = model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
 
-    mle_ds_model = in_context_models.InContextModel(dx, dy, default_specs['transformer_arch'], model_spec[0], loss="mle-dataset", normalize=normalize,
-                                             **model_spec_training)
-    model_path = "./exp2_uniform_fixed_no_normalize_03112025/models/mle-dataset Polynomial"
-    checkpoint = torch.load(model_path+".pt", map_location=config.device)
-    mle_ds_model.load_state_dict(checkpoint["model_state_dict"])"""
+    print(metrics.mse(_, ds_test.Y))
+    W_cf = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+    W_cf = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
+    plot_3d_surfaces(model2, model3, W1=None, W2=pred_params[0])
 
-
-
-
-    #print(metrics.mse(predictions, ds_test.Y))
-
-    """if normalize:
-        xynorm, scales = in_context_models.normalize_input(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0).transpose(0, 1))
-
-    # closed form predictions
-    if normalize:
-        cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(xynorm.squeeze(1)[:, 0:3], xynorm.squeeze(1)[:, 3],
-                                                                         lambd=config.lambda_mle, scales=None)
-        cf_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), cf_params.unsqueeze(0), scales=scales), scales)
-
-        model_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), params_mle_ds.unsqueeze(0), scales=scales), scales)
-    else:
-        cf_params = rev_kl_model.eval_model.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
-        cf_pred = rev_kl_model.eval_model.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
-
-
-    posterior = mle_ds_model.eval_model.bayes_linear_posterior(ds_input.X, ds_input.Y)
-    #post_pred = mle_ds_model.eval_model.forward(ds_test.X.unsqueeze(0), posterior[0].unsqueeze(0))
-
-    print(metrics.mse(cf_pred, ds_test.Y))
-    #print(posterior[0].unsqueeze(1).T)
-
-    ex = np.arange(100)
-    #plt.scatter(ex, cf_pred.flatten().detach().numpy()[0:100])
-    plt.scatter(ex, model_pred.flatten().detach().numpy()[500:600], color='blue')
-    plt.scatter(ex, ds_test.Y.flatten().detach().numpy()[500:600], color='red')
-    plt.show()
-
-
-    if normalize:
-        plot(None, None, (posterior, torch.ones_like(posterior)), None, params_mle_ds)
-    else:
-        #gt_model.get_W()[None, :]
-        plot(None, cf_params.T, (posterior[0].unsqueeze(1).T, posterior[1]), params_rev_kl, params_mle_ds)
-"""
-
-
-def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
-    surfaces = []
-    surfaces2 = []
-    N = 10
-
-    x_min, y_min = -10., -10.
-    x_max, y_max = 10., 10.
-    x_points, y_points = 20, 20
-    x = torch.linspace(x_min, x_max, x_points)
-    y = torch.linspace(y_min, y_max, y_points)
-    X1, X2 = torch.meshgrid(x, y, indexing='ij')
-
-    fig = make_subplots(
-        rows=1, cols=2,
-        specs=[[{'type': 'surface'}, {'type': 'surface'}]],
-        horizontal_spacing=0.05
-    )
-
-    # Compute global z-range across all frames
-    z_min, z_max = float('inf'), -float('inf')
-    for k in range(N):
-        x3 = float(k)*2-10.
-        points = torch.stack([X1.reshape(-1), X2.reshape(-1), x3*torch.ones_like(X1).reshape(-1)], dim=-1)
-
-        Y = model1(points.unsqueeze(0), W=W1.unsqueeze(0)) if W1 is not None else model1(points)
-        Y2 = model2(points.unsqueeze(0), W=W2.unsqueeze(0)) if W2 is not None else model2(points)
-
-        z1 = Y.reshape(x_points, y_points).detach().cpu().numpy()
-        z2 = Y2.reshape(x_points, y_points).detach().cpu().numpy()
-        z_min = min(z_min, z1.min(), z2.min())
-        z_max = max(z_max, z1.max(), z2.max())
-
-        surfaces.append(go.Surface(x=X1, y= X2, z=z1, showscale=False, opacity=0.9))
-        surfaces2.append(go.Surface(x=X1, y= X2, z=z2, showscale=False, opacity=0.9))
-
-    # Add initial surfaces
-    fig.add_trace(surfaces[0], row=1, col=1)
-    fig.add_trace(surfaces2[0], row=1, col=2)
-
-    # Animation frames
-    frames = [go.Frame(data=[surfaces[k], surfaces2[k]]) for k in range(N)]
-    fig.frames = frames
-
-    # Animation controls
-    fig.update_layout(
-        updatemenus=[dict(
-            type="buttons",
-            buttons=[dict(
-                label="Play",
-                method="animate",
-                args=[None, {
-                    "frame": {"duration": 200, "redraw": True},
-                    "fromcurrent": True,
-                    "transition": {"duration": 0}
-                }]
-            )],
-            x=0.5, y=1.15, xanchor="center", yanchor="top"
-        )]
-    )
-
-    # 🔧 Fix scale for BOTH subplots
-    scene_settings = dict(
-        xaxis=dict(range=[x_min, x_max], autorange=False),
-        yaxis=dict(range=[y_min, y_max], autorange=False),
-        zaxis=dict(range=[z_min, z_max], autorange=False),
-        aspectmode='manual',
-        aspectratio=dict(x=1, y=1, z=0.5)
-    )
-
-    fig.update_layout(scene=scene_settings, scene2=scene_settings)
-
-    fig.write_html(f"./plots/{model_name} - {ds_name}.html")
-
-import config
-
-"""model2 = Linear(dx=3, dy=1, order=1, feature_sampling_enabled=True)
-model3 = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
-bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
-ds_input = datasets.PointDataset(128, model2, x_dist=x_dist, noise_std=0.5, bounds=bounds)
-ds_test = datasets.PointDataset(1000, model2, x_dist=x_dist, noise_std=0., bounds=bounds)
-#model2 = train(model2, ds, valset=ds_val, valfreq=1000, iterations=num_iters, batch_size=100, lr=config.lr_classical, use_wandb=config.wandb_enabled)
-cf_params = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
-cf_prediction = model3.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
-print(metrics.mse(cf_prediction, ds_test.Y))
-plot_3d_surfaces(model2, model3, W1=None, W2=model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle))
-"""
-def plot_predictions(gt_model, model):
-    """
-    Plot the predictions of a training model against the ground truth.
-    """
-    #model2 = Linear(dx=1 ,dy=1, order=2)
-    #model2.W = torch.nn.Parameter(model.W)
-
-    X = torch.linspace(0, 1, 128*model.dx).view(128, 1*model.dx)
-    Y_gt = gt_model(X)
-    Y = model(X, plot=True)
-    plt.plot(X[:, 0].detach().numpy(), Y.detach().numpy())
-    plt.plot(X[:, 0].detach().numpy(), Y_gt.detach().numpy())
-    plt.show()

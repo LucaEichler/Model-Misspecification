@@ -24,13 +24,14 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}), ]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
+               ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),
+               ('Linear', {'order': 1, 'feature_sampling_enabled': False}),]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-dataset']
+losses = ['mle-dataset', 'forward-kl', 'backward-kl', 'mle-params']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -76,7 +77,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
             bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
 
             # test dataset, noise disabled to get target function values
-            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
+            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
 
             if nop_specs:
                 for model, model_name, model_path in nop_models:
@@ -243,7 +244,7 @@ default_specs = {
         'weight_decay': 1e-5,
         'dataset_amount': 1,#100000,
         'dataset_size': 128,
-        'num_iters': 1000000,
+        'num_iters': 1, #1000000,
         'batch_size': 100,
         'valset_size': 1,#10000,
         'normalize': True
@@ -259,6 +260,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_fwd_stream'
-specs_3['train_specs']['normalize'] = False
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
+specs_3['train_specs']['dataset_size'] = 1024
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

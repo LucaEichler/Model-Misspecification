@@ -24,14 +24,12 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),
-               ('Linear', {'order': 1, 'feature_sampling_enabled': False}),]
+model_specs = [('Linear', {'order': 1, 'feature_sampling_enabled': False}),]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-dataset', 'forward-kl', 'backward-kl', 'mle-params']
+losses = ['mle-params']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -248,7 +246,7 @@ default_specs = {
         'num_iters': 1, #1000000,
         'batch_size': 100,
         'valset_size': 1,#10000,
-        'normalize': True
+        'normalize': False
     },
     'early_stopping_params': {
         'early_stopping_enabled': False,
@@ -261,6 +259,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
-specs_3['train_specs']['dataset_size'] = 1024
+specs_3['save_path'] = './exp2_uniform_fixed_normalize'
+specs_3['train_specs']['normalize'] = True
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

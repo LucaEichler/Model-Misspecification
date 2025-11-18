@@ -199,7 +199,7 @@ def plot(gt_W, posterior_means, params_list, style_list, save_name):
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(save_name)
 
-def plot_params(models, style_list, eval_spec, x_dist, save_name):
+def plot_params(models, style_list, eval_spec, x_dist, save_name, normalize):
 
     # create a ground truth target function and sample datasets
     gt_model = eval(eval_spec[0])(dx=dx, dy=dy, **eval_spec[1])
@@ -219,11 +219,16 @@ def plot_params(models, style_list, eval_spec, x_dist, save_name):
     if normalize:
         xynorm, scales = in_context_models.normalize_input(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0).transpose(0, 1))
 
-    # closed form predictions
-    if normalize:
         cf_params = models[0].eval_model.closed_form_solution_regularized(xynorm.squeeze(1)[:, 0:3], xynorm.squeeze(1)[:, 3],
-                                                                         lambd=config.lambda_mle, scales=None)
+                                                                         lambd=config.lambda_mle, scales=scales)
+
+        y_norm_pred = models[0].eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales),
+                                     cf_params.unsqueeze(0), scales=scales)
+
+        print(metrics.mse(y_norm_pred, xynorm.squeeze(1)[:, 3]))
+
         cf_pred = in_context_models.renormalize(models[0].eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), cf_params.unsqueeze(0), scales=scales), scales)
+        #print(metrics.mse(cf_pred, ds_test.Y))
 
         #model_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), params_mle_ds.unsqueeze(0), scales=scales), scales)
     else:
@@ -270,7 +275,7 @@ if __name__ == "__main__":
                    ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                    ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
     x_dist = 'uniform_fixed'
-    normalize = False
+    normalize = True
 
 
     def plot_models(model_specs, style_list, model_assumption_spec, eval_spec, normalize, x_dist):
@@ -286,14 +291,14 @@ if __name__ == "__main__":
             model.load_state_dict(checkpoint["model_state_dict"])
             model_list.append(model)
         for i in range(30):
-            plot_params(model_list, style_list, eval_spec, x_dist,  save_name="./plots/"+str(i)+".svg")
+            plot_params(model_list, style_list, eval_spec, x_dist,  save_name="./plots/"+str(i)+".svg", normalize=normalize)
 
 
-    style_list = [("blue", "Rev-KL", "solid", 0.75), ("red", "MLE-Dataset", "solid", 0.), ("green", "Fwd-KL", "solid", 0.5)]
-    p1 = "./exp2_uniform_fixed_no_normalize_03112025/models/backward-kl Nonlinear"
-    p2 = "./exp2_uniform_fixed_no_normalize_03112025/models/mle-dataset Nonlinear"
-    p3 = "./exp2_uniform_fixed_no_normalize_03112025/models/forward-kl Nonlinear"
-    #plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[1], model_specs[1], normalize, x_dist)
+    style_list = [("blue", "Rev-KL", "solid", 0.5), ("red", "MLE-Dataset", "solid", 0.5), ("green", "Fwd-KL", "solid", 0.)]
+    p1 = "./exp2_uniform_fixed_normalize17112025/models/backward-kl Polynomial"
+    p2 = "./exp2_uniform_fixed_normalize17112025/models/mle-dataset Polynomial"
+    p3 = "./exp2_uniform_fixed_fwd_stream18112025/models/forward-kl Polynomial"
+    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[0], model_specs[0], normalize, x_dist)
 
     loss, arch_spec, model_path = 'forward-kl', default_specs[
         'transformer_arch'], "./exp2_uniform_fixed_fwd_stream18112025/models/forward-kl Polynomial"
@@ -314,7 +319,7 @@ if __name__ == "__main__":
     cf_prediction = model3.forward(ds_test.X.unsqueeze(0), cf_params.unsqueeze(0))
     _, pred_params, _1 = model.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0), ds_test.X.unsqueeze(0))
 
-    print(metrics.mse(_, ds_test.Y))
+    #print(metrics.mse(_, ds_test.Y))
     W_cf = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
     W_cf = model3.closed_form_solution_regularized(ds_input.X, ds_input.Y, lambd=config.lambda_mle)
     plot_3d_surfaces(model2, model3, W1=None, W2=pred_params[0])

@@ -241,11 +241,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 1000, #100000,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 1000, #10000,
         'normalize': False
     },
     'early_stopping_params': {
@@ -259,6 +259,6 @@ default_specs = {
     'save_all': False,
 }
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_normalize'
+specs_3['save_path'] = './exp2_uniform_fixed_normalize17112025'
 specs_3['train_specs']['normalize'] = True
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

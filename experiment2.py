@@ -172,7 +172,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         "mse_gradient_descent": mse(predictions, ds_test.Y).item()
                     }
 
-                    if loss == 'backward-kl' or loss == 'forward-kl':
+                    """if loss == 'backward-kl' or loss == 'forward-kl':
                         posterior = (posterior[0], posterior[1].squeeze(0))
                         mat = torch.eye(params[1].size(-1)).to(config.device) * params[1]
                         pred_dist = (params[0].squeeze(0), mat)
@@ -182,6 +182,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         res_dict["bw_kl"] = bw_kl
                         #res_dict["baseline_fwd"] = metrics.kl_mvn((torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))), posterior)
                         #res_dict["baseline_rev"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0]), torch.ones_like(torch.exp(params[1]))))
+                    """
                     specification['results'][2].append(res_dict)
 
 

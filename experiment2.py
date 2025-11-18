@@ -174,7 +174,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
 
                     if loss == 'backward-kl' or loss == 'forward-kl':
                         posterior = (posterior[0], posterior[1].squeeze(0))
-                        mat = torch.eye(params[1].size(-1)) * params[1]
+                        mat = torch.eye(params[1].size(-1)).to(config.device) * params[1]
                         pred_dist = (params[0].squeeze(0), mat)
                         fw_kl = metrics.kl_mvn(pred_dist, posterior)
                         bw_kl = metrics.kl_mvn(posterior, pred_dist)

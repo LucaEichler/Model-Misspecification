@@ -63,12 +63,12 @@ if __name__ == "__main__":
                                           x_dist, noise_std, **model_spec[1])
         valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy,
                                          x_dist, noise_std, **model_spec[1])  # TODO valset size in config
-        model_trained = train(model, dataset, valfreq=2000, valset=valset, iterations=train_specs['num_iters'],
+        """model_trained = train(model, dataset, valfreq=2000, valset=valset, iterations=train_specs['num_iters'],
                               batch_size=train_specs['batch_size'],
                               lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
                               early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,
                               min_lr=train_specs['min_lr'], save_path=model_path, wandb_name=model_name, save_all=save_all)
-        # test neural operator - plots ?
+        """# test neural operator - plots ?
 
 
 

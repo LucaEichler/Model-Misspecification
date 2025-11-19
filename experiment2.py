@@ -24,7 +24,8 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
+               ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True})]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -75,7 +76,7 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
             bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
 
             # test dataset, noise disabled to get target function values
-            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0.5, bounds=bounds)
+            ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
 
             if nop_specs:
                 for model, model_name, model_path in nop_models:
@@ -258,7 +259,10 @@ default_specs = {
     'save_path': './exp2_default',
     'save_all': False,
 }
+specs_2 = copy.deepcopy(default_specs)
+specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
+specs_2['train_specs']['dataset_size'] = 1024
+
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_normalize17112025'
-specs_3['train_specs']['normalize'] = True
-run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
+run_experiments([specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')

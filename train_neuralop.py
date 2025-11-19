@@ -16,8 +16,8 @@ default_specs = {
     'transformer_arch':
         {
             'dT': 256,
-            'num_heads': 4,
-            'num_layers': 4,
+            'num_heads': 8,
+            'num_layers': 6,
             'output': 'attention-pool'
         },
     'train_specs':

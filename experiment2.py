@@ -25,21 +25,22 @@ dy = 1
 plot=False
 
 model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True})]
+               ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),
+               ('Linear', {'order': 1, 'feature_sampling_enabled': True})]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['mle-params']
+losses = ['mle-dataset', 'backward-kl', 'forward-kl', 'mle-params']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
 
 
 def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
+    dataset_sizes = []  # list of all unique dataset sizes, used later for efficiency
     for specification in exp2_specs:
 
-        dataset_sizes = []  # list of all unique dataset sizes, used later for efficiency
         if not dataset_sizes.__contains__(specification['train_specs']['dataset_size']):
             dataset_sizes.append(specification['train_specs']['dataset_size'])
 
@@ -264,5 +265,5 @@ specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
 specs_2['train_specs']['dataset_size'] = 1024
 
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize'
-run_experiments([specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_final'
+run_experiments([specs_2, specs_3], nop_specs=None, x_dist='uniform_fixed')

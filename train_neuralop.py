@@ -25,7 +25,7 @@ default_specs = {
             'lr': 0.0001,
             'min_lr': 1e-6,
             'weight_decay': 1e-5,
-            'dataset_amount': 100000,
+            'dataset_amount': 1,#100000,
             'dataset_size': 128,
             'num_iters': 1000000,
             'batch_size': 100,
@@ -47,9 +47,7 @@ specs = default_specs
 if __name__ == "__main__":
     train_specs = specs['train_specs']
 
-    model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-                   ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
-                   ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
+    model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),]
 
     results=[]
     for model_spec in model_specs:
@@ -65,7 +63,7 @@ if __name__ == "__main__":
                                           x_dist, noise_std, **model_spec[1])
         valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy,
                                          x_dist, noise_std, **model_spec[1])  # TODO valset size in config
-        model_trained = train(model, dataset, valfreq=500, valset=valset, iterations=train_specs['num_iters'],
+        model_trained = train(model, dataset, valfreq=2000, valset=valset, iterations=train_specs['num_iters'],
                               batch_size=train_specs['batch_size'],
                               lr=train_specs['lr'], weight_decay=train_specs['weight_decay'],
                               early_stopping_params=specs['early_stopping_params'], use_wandb=config.wandb_enabled,

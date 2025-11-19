@@ -15,7 +15,7 @@ from datasets import PointDataset, gen_uniform_bounds
 x_dist = 'uniform_fixed'
 
 # create a target function (non-sparse) and sample a dataset from it
-gt_model = Linear(dx=3, dy=1, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
+gt_model = Linear(dx=3, dy=1, order=1, feature_sampling_enabled=False, nonlinear_features_enabled=False)
 dataset = PointDataset(1000, gt_model, x_dist=x_dist, noise_std=0., bounds=gen_uniform_bounds(x_dist=x_dist, dim=3))
 X, Y = dataset.X, dataset.Y
 params = gt_model.get_W()
@@ -32,7 +32,7 @@ error = y_norm-y_pred.squeeze(0)
 assert torch.allclose(error, torch.zeros_like(error), atol=1e-6)
 
 
-model_spec = ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True})
+model_spec = ('Linear', {'order': 1, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': False})
 gt_model = Linear(dx=3, dy=1, **model_spec[1])
 dataset = datasets.ContextDataset(100, 128, model_spec[0], dx=3, dy=1,
                                       x_dist=x_dist, noise_std=0.5, **model_spec[1])

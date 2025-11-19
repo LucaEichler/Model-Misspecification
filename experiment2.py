@@ -24,7 +24,7 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 1, 'feature_sampling_enabled': False}),]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -243,7 +243,7 @@ default_specs = {
         'weight_decay': 1e-5,
         'dataset_amount': 1000, #100000,
         'dataset_size': 128,
-        'num_iters': 1000000,
+        'num_iters': 1,#1000000,
         'batch_size': 100,
         'valset_size': 1000, #10000,
         'normalize': False

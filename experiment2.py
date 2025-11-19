@@ -179,8 +179,8 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         bw_kl = metrics.kl_mvn(posterior, pred_dist)
                         res_dict["fw_kl"] = fw_kl
                         res_dict["bw_kl"] = bw_kl
-                        res_dict["baseline_fwd"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev), torch.ones_like(torch.exp(params[1]), device=dev)), posterior)
-                        res_dict["baseline_rev"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev), torch.ones_like(torch.exp(params[1]), device=dev)))
+                        res_dict["baseline_fwd"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev), torch.eye(params[1].size(-1), device=dev)), posterior)
+                        res_dict["baseline_rev"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev), torch.eye(params[1].size(-1), device=dev)))
                     specification['results'][2].append(res_dict)
 
 

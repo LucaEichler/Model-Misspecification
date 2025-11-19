@@ -133,7 +133,8 @@ class TransformerAggregateOutput(nn.Module):
         self.encoder = nn.Linear(self.dIn, dT)
 
         # This layer maps from the Transformer output of dim dT to the desired output dim dT
-        self.decoder = nn.Linear(dT, dOut)
+        #self.decoder = nn.Sequential(nn.Linear(dT, dT*2), nn.ReLU(), nn.Linear(dT*2,dOut))
+        self.decoder = nn.Linear(dT,dOut)
 
         self.scale_encoder = nn.Linear(2, dT)
 
@@ -157,7 +158,7 @@ class TransformerAggregateOutput(nn.Module):
         q = self.learnable_query.repeat(1, x.size(1), 1)
         attn_output, _ = self.multihead_attention(query=q, key=tf_out, value=tf_out)
 
-        # map to desired output dimension (only take output at CLS token) & return
+        # map to desired output dimension & return
         return self.decoder(attn_output.squeeze(0)), scales
 
 

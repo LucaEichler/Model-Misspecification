@@ -142,7 +142,7 @@ class ContextDataset(Dataset):
         return self.data.shape[0]
 
     def get_batch(self, batch_size):
-        stream=False
+        stream=True
         if not stream:
             if self.index + batch_size > self.__len__():
                 perm = torch.randperm(self.__len__())

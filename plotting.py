@@ -172,8 +172,14 @@ def plot(gt_W, posterior_means, params_list, style_list, save_name):
 
     # axes is a 2D array of Axes objects
     for i, ax in enumerate(axes.flat):
-        if i >= n_params: continue
         x = np.linspace(-5, 5, 500)
+        plot_prior=False
+        if plot_prior:
+            y = norm.pdf(x, 0, 1)
+            ax.plot(x, y, lw=1, color="black", label="Prior", alpha=0.8)
+        if posterior_means is not None:
+            ax.axvline(posterior_means[i].detach().numpy(), color='black', label='Closed form solution', alpha = 0.9, lw=1)
+        if i >= n_params: continue
         for params, style in zip(params_list, style_list):
             color, label, linestyle, alpha = style
             if isinstance(params, tuple):
@@ -184,12 +190,11 @@ def plot(gt_W, posterior_means, params_list, style_list, save_name):
             else:
                 ax.axvline(params[0, i].detach().numpy(), color=color, label=label, linestyle=linestyle, alpha=alpha, lw=1)
 
-        if posterior_means is not None:
-            ax.axvline(posterior_means[i].detach().numpy(), color='black', label='Posterior (closed form solution)', alpha = 0.5, lw=1)
+
         if gt_W is not None:
             ax.axvline(gt_W[:, i].detach().numpy(), color='black', linestyle='dotted')
-        ax.set_xlim(-5, 5)
-        ax.set_ylim(-0.5, 2)
+        ax.set_xlim(-2, 2)
+        ax.set_ylim(-0.5, 3)
 
         ax.set_title(f"Parameter {i+1}")
 
@@ -228,7 +233,7 @@ def plot_params(models, style_list, eval_spec, x_dist, save_name, normalize):
         print(metrics.mse(y_norm_pred, xynorm.squeeze(1)[:, 3]))
 
         cf_pred = in_context_models.renormalize(models[0].eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), cf_params.unsqueeze(0), scales=scales), scales)
-        #print(metrics.mse(cf_pred, ds_test.Y))
+        print(metrics.mse(cf_pred, ds_test.Y))
 
         #model_pred = in_context_models.renormalize(rev_kl_model.eval_model.forward(in_context_models.normalize_to_scales(ds_test.X.unsqueeze(0), scales), params_mle_ds.unsqueeze(0), scales=scales), scales)
     else:
@@ -256,7 +261,7 @@ if __name__ == "__main__":
             'min_lr': 1e-6,
             'weight_decay': 1e-5,
             'dataset_amount': 10000, #100000,
-            'dataset_size': 128,
+            'dataset_size': 1024,
             'num_iters': 1000000,
             'batch_size': 100,
             'valset_size': 1000, #10000,
@@ -275,7 +280,7 @@ if __name__ == "__main__":
                    ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                    ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
     x_dist = 'uniform_fixed'
-    normalize = True
+    normalize = False
 
 
     def plot_models(model_specs, style_list, model_assumption_spec, eval_spec, normalize, x_dist):
@@ -294,11 +299,12 @@ if __name__ == "__main__":
             plot_params(model_list, style_list, eval_spec, x_dist,  save_name="./plots/"+str(i)+".svg", normalize=normalize)
 
 
-    style_list = [("blue", "Rev-KL", "solid", 0.5), ("red", "MLE-Dataset", "solid", 0.5), ("green", "Fwd-KL", "solid", 0.)]
-    p1 = "./exp2_uniform_fixed_normalize17112025/models/backward-kl Polynomial"
-    p2 = "./exp2_uniform_fixed_normalize17112025/models/mle-dataset Polynomial"
-    p3 = "./exp2_uniform_fixed_fwd_stream18112025/models/forward-kl Polynomial"
-    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3)], style_list, model_specs[0], model_specs[0], normalize, x_dist)
+    style_list = [("blue", "", "solid", 0.), ("red", "", "solid", 0.), ("green", "Fwd-KL", "solid", 0.75), ("Orange", "MLE-Params", "solid", 0.9)]
+    p1 = "./exp2_uniform_fixed_no_normalize_inc_ds_size/models/backward-kl Polynomial"
+    p2 = "./exp2_uniform_fixed_no_normalize_inc_ds_size/models/mle-dataset Polynomial"
+    p3 = "./exp2_uniform_fixed_no_normalize_inc_ds_size/models/forward-kl Polynomial"
+    p4 = "./exp2_uniform_fixed_no_normalize_inc_ds_size/models/mle-params Polynomial"
+    plot_models([("backward-kl", default_specs['transformer_arch'], p1), ("mle-dataset", default_specs['transformer_arch'], p2), ("forward-kl", default_specs['transformer_arch'], p3), ("mle-params", default_specs['transformer_arch'], p4)], style_list, model_specs[0], model_specs[1], normalize, x_dist)
 
     loss, arch_spec, model_path = 'forward-kl', default_specs[
         'transformer_arch'], "./exp2_uniform_fixed_fwd_stream18112025/models/forward-kl Polynomial"

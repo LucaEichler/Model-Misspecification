@@ -39,6 +39,11 @@ def KL_diag_gauss(dist1, dist2):
 def kl_mvn(dist0, dist1):
     (m0, S0) = dist0
     (m1, S1) = dist1
+    EPS = 1e-6
+    d = m0.size(-1)
+    S0+=EPS * torch.eye(d, device=S0.device)
+    S1+=EPS * torch.eye(d, device=S1.device)
+
     """
     Computes KL(N(m0, S0) || N(m1, S1)) for full covariance matrices.
     m*: shape (d,), S*: shape (d,d).

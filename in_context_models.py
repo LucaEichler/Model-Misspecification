@@ -257,7 +257,10 @@ class InContextModel(nn.Module):
             # In this case, the parameters consist of means and variances
             means, logvariances = torch.chunk(pred_params, 2, dim=-1)
 
+            #logvariances = torch.clamp(logvariances, min=-10, max=10)
+
             pred_params = (means, torch.exp(logvariances))
+
 
             eval_samples = 25 #TODO in config
 

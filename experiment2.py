@@ -24,12 +24,17 @@ dx = 3
 dy = 1
 plot=False
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),]
+#model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),]
+
+
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
+    ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),
+('Linear', {'order': 1, 'feature_sampling_enabled': False})]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
-losses = ['forward-kl']
+losses = ['mle-dataset', 'mle-params', 'backward-kl', 'forward-kl']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
 trials = 50        # amount of ground truth functions that the model is tested on
@@ -172,15 +177,18 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
 
                     if loss == 'backward-kl' or loss == 'forward-kl':
                         dev = params[1].device
+                        HIGH_VAL = 1e6  # or any large value you consider "high"
+                        # Example: params[1] may contain inf
+
                         posterior = (posterior[0], posterior[1].squeeze(0))
-                        mat = torch.eye(params[1].size(-1), device=dev) * params[1]
+                        mat = torch.eye(params[1].size(-1), device=dev) * torch.where(torch.isinf(params[1]), torch.full_like(params[1], HIGH_VAL), params[1])
                         pred_dist = (params[0].squeeze(0), mat)
-                        fw_kl = metrics.kl_mvn(pred_dist, posterior)
-                        bw_kl = metrics.kl_mvn(posterior, pred_dist)
+                        fw_kl = metrics.kl_mvn(posterior, pred_dist)
+                        bw_kl = metrics.kl_mvn(pred_dist, posterior)
                         res_dict["fw_kl"] = fw_kl
                         res_dict["bw_kl"] = bw_kl
-                        res_dict["baseline_fwd"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev), torch.eye(params[1].size(-1), device=dev)), posterior)
-                        res_dict["baseline_rev"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev), torch.eye(params[1].size(-1), device=dev)))
+                        res_dict["baseline_fwd"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)))
+                        res_dict["baseline_rev"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)), posterior)
                     specification['results'][2].append(res_dict)
 
 
@@ -263,5 +271,6 @@ specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
 specs_2['train_specs']['dataset_size'] = 1024
 
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_fwd_stream19112025'
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_params27112025'
+specs_3['transformer_arch']['num_layers'] = 8
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

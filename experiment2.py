@@ -37,7 +37,7 @@ eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
 losses = ['mle-dataset', 'mle-params', 'backward-kl', 'forward-kl']
 
 test_set_size = 1000    # the amount of points for each dataset that is tested on
-trials = 50        # amount of ground truth functions that the model is tested on
+trials = 100        # amount of ground truth functions that the model is tested on
 
 
 def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
@@ -185,10 +185,10 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         pred_dist = (params[0].squeeze(0), mat)
                         fw_kl = metrics.kl_mvn(posterior, pred_dist)
                         bw_kl = metrics.kl_mvn(pred_dist, posterior)
-                        res_dict["fw_kl"] = fw_kl
-                        res_dict["bw_kl"] = bw_kl
-                        res_dict["baseline_fwd"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)))
-                        res_dict["baseline_rev"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)), posterior)
+                        res_dict["fw_kl"] = fw_kl.item()
+                        res_dict["bw_kl"] = bw_kl.item()
+                        res_dict["baseline_fwd"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev))).item()
+                        res_dict["baseline_rev"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)), posterior).item()
                     specification['results'][2].append(res_dict)
 
 
@@ -219,7 +219,21 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
         save_path = specification['save_path']
         [results_range_normalized, results_rel, results] = specification['results']
         df = pd.DataFrame(results)
-        df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+        metric_cols = df.columns.difference(['gt', 'model_name', 'trial'])
+
+        agg_dict = {
+            col: [
+                ('mean', 'mean'),
+                ('std', 'std'),
+                ('ci95', metrics.ci95)
+            ]
+            for col in metric_cols
+        }
+        df_avg = df.groupby(['gt', 'model_name']).agg(agg_dict).reset_index()
+        df_avg.columns = [
+            f"{c1}_{c2}" if c2 else c1
+            for c1, c2 in df_avg.columns
+        ]
         df_avg.to_csv(save_path+"/experiment2_results.csv", index=False)
 
         df = pd.DataFrame(results_range_normalized)
@@ -271,6 +285,6 @@ specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
 specs_2['train_specs']['dataset_size'] = 1024
 
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_params27112025'
-specs_3['transformer_arch']['num_layers'] = 8
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_final'
+#specs_3['transformer_arch']['num_layers'] = 8
 run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')

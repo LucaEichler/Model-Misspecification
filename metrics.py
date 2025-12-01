@@ -1,4 +1,6 @@
+import numpy as np
 import torch
+from scipy.stats import t
 
 
 def mse(a, b):
@@ -63,3 +65,13 @@ def kl_mvn(dist0, dist1):
     det_term = logdet1 - logdet0
 
     return 0.5 * (tr_term + quad_term + det_term - N)
+
+def se(x):
+    return x.std(ddof=1) / np.sqrt(len(x))
+
+def ci95(x):
+    n = len(x)
+    std = x.std(ddof=1)
+    se_val = std / np.sqrt(n)
+    t_val = t.ppf(0.975, df=n - 1)
+    return t_val * se_val

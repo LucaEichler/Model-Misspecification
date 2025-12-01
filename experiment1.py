@@ -13,17 +13,6 @@ from config import device
 
 seed.set_seed(0)
 
-def se(x):
-    return x.std(ddof=1) / np.sqrt(len(x))
-
-def ci95(x):
-    n = len(x)
-    std = x.std(ddof=1)
-    se_val = std / np.sqrt(n)
-    t_val = t.ppf(0.975, df=n - 1)
-    return t_val * se_val
-
-
 amortized_specs = {
         'transformer_arch':
             {
@@ -145,8 +134,8 @@ def run_experiments(exp1_specs):
         df_avg = df.groupby(['gt', 'model_name'])['mse'].agg(
             mean_mse='mean',
             std_mse='std',
-            se=se,
-            ci=ci95
+            se=metrics.se,
+            ci=metrics.ci95
         ).reset_index()
         df_avg_params = df_params.groupby(['gt', 'model_name'], as_index=False)['mse_params'].mean()
 

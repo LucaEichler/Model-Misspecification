@@ -280,11 +280,14 @@ default_specs = {
     'save_path': './exp2_default',
     'save_all': False,
 }
+specs_1 = copy.deepcopy(default_specs)
+specs_1['save_path'] = './exp2_uniform_fixed_no_normalize_final'
+
 specs_2 = copy.deepcopy(default_specs)
 specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
 specs_2['train_specs']['dataset_size'] = 1024
 
 specs_3 = copy.deepcopy(default_specs)
-specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_final'
-#specs_3['transformer_arch']['num_layers'] = 8
-run_experiments([specs_3], nop_specs=None, x_dist='uniform_fixed')
+specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_params'
+specs_3['transformer_arch']['num_layers'] = 8
+run_experiments([specs_1, specs_2, specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')

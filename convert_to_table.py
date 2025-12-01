@@ -278,6 +278,15 @@ def convert_exp2_ablation(filename, filename_inc_ds, filename_inc_params):
     """
     print(out)
 
+def fill_block_exp2_kl_eb(l, e):
+    pr = 2
+
+    string = rf"""& Linear & {l[0]:.{pr}f}{{\tiny$\pm${e[0]:.{pr}f}}} & {l[1]:.{pr}f}{{\tiny$\pm${e[1]:.{pr}f}}} & {l[2]:.{pr}f}{{\tiny$\pm${e[2]:.{pr}f}}} & {l[3]:.{pr}f}{{\tiny$\pm${e[3]:.{pr}f}}} & {l[4]:.{pr}f}{{\tiny$\pm${e[4]:.{pr}f}}} & {l[5]:.{pr}f}{{\tiny$\pm${e[5]:.{pr}f}}} \\
+    & & Polynomial & {l[6]:.{pr}f}{{\tiny$\pm${e[6]:.{pr}f}}} & {l[7]:.{pr}f}{{\tiny$\pm${e[7]:.{pr}f}}} & {l[8]:.{pr}f}{{\tiny$\pm${e[8]:.{pr}f}}} & {l[9]:.{pr}f}{{\tiny$\pm${e[9]:.{pr}f}}} & {l[10]:.{pr}f}{{\tiny$\pm${e[10]:.{pr}f}}} & {l[11]:.{pr}f}{{\tiny$\pm${e[11]:.{pr}f}}} \\
+    & & Nonlinear & {l[12]:.{pr}f}{{\tiny$\pm${e[12]:.{pr}f}}} & {l[13]:.{pr}f}{{\tiny$\pm${e[13]:.{pr}f}}} & {l[14]:.{pr}f}{{\tiny$\pm${e[14]:.{pr}f}}} & {l[15]:.{pr}f}{{\tiny$\pm${e[15]:.{pr}f}}} & {l[16]:.{pr}f}{{\tiny$\pm${e[16]:.{pr}f}}} & {l[17]:.{pr}f}{{\tiny$\pm${e[17]:.{pr}f}}} \\
+    """
+    return string
+
 def fill_block_exp2_kl(l):
     string = rf"""& Linear & {l[0]:.5f} & {l[1]:.5f} & {l[2]:.5f} & {l[3]:.5f} & {l[4]:.5f} & {l[5]:.5f} \\
     & & Polynomial & {l[6]:.5f} & {l[7]:.5f} & {l[8]:.5f} & {l[9]:.5f} & {l[10]:.5f} & {l[11]:.5f} \\
@@ -285,17 +294,22 @@ def fill_block_exp2_kl(l):
     """
     return string
 
-def convert_exp2_kl(filename):
+def convert_exp2_kl_eb(filename):
     df = pd.read_csv(filename)
-    b_fwd = df['baseline_fwd']
-    b_rev = df['baseline_rev']
-    rev_kl = df['bw_kl']
-    fwd_kl = df['fw_kl']
+    b_fwd = df['baseline_fwd_mean']
+    b_rev = df['baseline_rev_mean']
+    rev_kl = df['bw_kl_mean']
+    fwd_kl = df['fw_kl_mean']
+    b_fwd_e = df['baseline_fwd_ci95']
+    b_rev_e = df['baseline_rev_ci95']
+    rev_kl_e = df['bw_kl_ci95']
+    fwd_kl_e = df['fw_kl_ci95']
 
-    prior_block = fill_block_exp2_kl([b_fwd[0], b_rev[0], b_fwd[24], b_rev[24], b_fwd[12], b_rev[12], b_fwd[2], b_rev[2], b_fwd[26], b_rev[26], b_fwd[14], b_rev[14], b_fwd[1], b_rev[1], b_fwd[25], b_rev[25], b_fwd[13], b_rev[13]])
+    prior_block = fill_block_exp2_kl_eb([b_fwd[0], b_rev[0], b_fwd[24], b_rev[24], b_fwd[12], b_rev[12], b_fwd[2], b_rev[2], b_fwd[26], b_rev[26], b_fwd[14], b_rev[14], b_fwd[1], b_rev[1], b_fwd[25], b_rev[25], b_fwd[13], b_rev[13]], [b_fwd_e[0], b_rev_e[0], b_fwd_e[24], b_rev_e[24], b_fwd_e[12], b_rev_e[12], b_fwd_e[2], b_rev_e[2], b_fwd_e[26], b_rev_e[26], b_fwd_e[14], b_rev_e[14], b_fwd_e[1], b_rev_e[1], b_fwd_e[25], b_rev_e[25], b_fwd_e[13], b_rev_e[13]])
     blocks = []
     for i in range(2):
-        l = fill_block_exp2_kl([fwd_kl[0+i*3], rev_kl[0+i*3], fwd_kl[24+i*3], rev_kl[24+i*3], fwd_kl[12+i*3], rev_kl[12+i*3], fwd_kl[2+i*3], rev_kl[2+i*3], fwd_kl[26+i*3], rev_kl[26+i*3], fwd_kl[14+i*3], rev_kl[14+i*3], fwd_kl[1+i*3], rev_kl[1+i*3], fwd_kl[25+i*3], rev_kl[25+i*3], fwd_kl[13+i*3], rev_kl[13+i*3]])
+        l = fill_block_exp2_kl_eb([fwd_kl[0+i*3], rev_kl[0+i*3], fwd_kl[24+i*3], rev_kl[24+i*3], fwd_kl[12+i*3], rev_kl[12+i*3], fwd_kl[2+i*3], rev_kl[2+i*3], fwd_kl[26+i*3], rev_kl[26+i*3], fwd_kl[14+i*3], rev_kl[14+i*3], fwd_kl[1+i*3], rev_kl[1+i*3], fwd_kl[25+i*3], rev_kl[25+i*3], fwd_kl[13+i*3], rev_kl[13+i*3]],
+                               [fwd_kl_e[0+i*3], rev_kl_e[0+i*3], fwd_kl_e[24+i*3], rev_kl_e[24+i*3], fwd_kl_e[12+i*3], rev_kl_e[12+i*3], fwd_kl_e[2+i*3], rev_kl_e[2+i*3], fwd_kl_e[26+i*3], rev_kl_e[26+i*3], fwd_kl_e[14+i*3], rev_kl_e[14+i*3], fwd_kl_e[1+i*3], rev_kl_e[1+i*3], fwd_kl_e[25+i*3], rev_kl_e[25+i*3], fwd_kl_e[13+i*3], rev_kl_e[13+i*3]])
         blocks.append(l)
     [rev_kl_block, fwd_kl_block] = blocks
     out = rf"""
@@ -335,6 +349,6 @@ def convert_exp2_kl(filename):
 
     print(out)
 
-convert_exp2_ablation_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_ds_size/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_params/experiment2_results.csv")
-#convert_exp2_kl("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")
+#convert_exp2_ablation_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_ds_size/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_params/experiment2_results.csv")
+convert_exp2_kl_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")
 #convert_exp2_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")

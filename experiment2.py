@@ -169,7 +169,6 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         "trial": i,
                         'gt': gt_model._get_name(),
                         'model_name': loss + " " + in_context_model.eval_model._get_name(),
-                        # "mse_params_closed_form_gradient_descent": mse(closed_form_params, params).item(),
                         "mse_closed_form_gradient_descent": mse(closed_form_prediction, predictions).item(),
                         "mse_closed_form": mse(closed_form_prediction, ds_test.Y).item(),
                         "mse_gradient_descent": mse(predictions, ds_test.Y).item()
@@ -189,6 +188,8 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         res_dict["bw_kl"] = bw_kl.item()
                         res_dict["baseline_fwd"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev))).item()
                         res_dict["baseline_rev"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)), posterior).item()
+                    else:
+                        res_dict["mse_params"]: mse(closed_form_params, params).item()
                     specification['results'][2].append(res_dict)
 
 

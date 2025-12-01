@@ -247,7 +247,20 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
 
     if nop_specs:
         df = pd.DataFrame(nop_results)
-        df_avg = df.groupby(['gt', 'model_name']).mean().reset_index()
+        metric_cols = df.columns.difference(['gt', 'model_name', 'trial'])
+        agg_dict = {
+            col: [
+                ('mean', 'mean'),
+                ('std', 'std'),
+                ('ci95', metrics.ci95)
+            ]
+            for col in metric_cols
+        }
+        df_avg = df.groupby(['gt', 'model_name']).agg(agg_dict).reset_index()
+        df_avg.columns = [
+            f"{c1}_{c2}" if c2 else c1
+            for c1, c2 in df_avg.columns
+        ]
         df_avg.to_csv(nop_specs['save_path'] + "/neuralop.csv", index=False)
 
 

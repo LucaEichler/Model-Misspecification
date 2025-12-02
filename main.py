@@ -66,8 +66,8 @@ def train_in_context_models(dx, dy, transformer_arch, x_dist, train_specs, model
             dataset = ds[0]
             valset = ds[1]
         else:
-            dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1])
-            valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **model_spec[1]) #TODO valset size in config
+            dataset = datasets.ContextDataset(train_specs['dataset_amount'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **{'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True})
+            valset = datasets.ContextDataset(train_specs['valset_size'], train_specs['dataset_size'], model_spec[0], dx, dy, x_dist, noise_std, **{'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}) #TODO valset size in config
         for loss in losses:
             model = in_context_models.InContextModel(dx, dy, transformer_arch, model_spec[0], loss, train_specs['normalize'], **model_spec_training)  #TODO: Convert into config
             model_name = loss + " " + model.eval_model._get_name()

@@ -3,6 +3,7 @@ import os
 
 import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 
 import config
 import datasets
@@ -18,7 +19,7 @@ from classical_models import Linear
 from metrics import mse, mse_range, mse_rel
 from neuralop import InterpolationModel
 
-seed.set_seed(0)
+seed.set_seed(1)
 
 dx = 3
 dy = 1
@@ -27,12 +28,10 @@ plot=False
 #model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),]
 
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),
-    ('Linear', {'order': 3, 'feature_sampling_enabled': False, 'nonlinear_features_enabled': True}),
-('Linear', {'order': 1, 'feature_sampling_enabled': False})]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True})]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
-               ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
+                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
                ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 losses = ['mle-dataset', 'mle-params', 'backward-kl', 'forward-kl']
 
@@ -82,6 +81,9 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
             # test dataset, noise disabled to get target function values
             ds_test = datasets.PointDataset(test_set_size, gt_model, x_dist=x_dist, noise_std=0., bounds=bounds)
 
+            # for plotting
+            pred_dict = {}
+
             if nop_specs:
                 for model, model_name, model_path in nop_models:
                     # sample an input dataset from ground truth
@@ -96,6 +98,9 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         'model_name': model_name,
                         "mse": mse(predictions.squeeze(0), ds_test.Y).item()}
                     )
+
+
+
                     if plot:
                         os.makedirs(nop_specs['save_path'] + "/plots/", exist_ok=True)
 
@@ -125,7 +130,8 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                                                      x_dist=x_dist, noise_std=0.5,
                                                      bounds=bounds, data=(ds.X[0:ds_size], ds.Y[0:ds_size]))
 
-            for specification in exp2_specs: # evaluate each given specification for in context models, useful for ablations
+            for k in range(len(exp2_specs)): # evaluate each given specification for in context models, useful for ablation study
+                specification = exp2_specs[k]
 
                 ds_input = ds_input_dict[specification['train_specs']['dataset_size']]
 
@@ -188,9 +194,13 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         res_dict["bw_kl"] = bw_kl.item()
                         res_dict["baseline_fwd"] = metrics.kl_mvn(posterior, (torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev))).item()
                         res_dict["baseline_rev"] = metrics.kl_mvn((torch.zeros_like(params[0], device=dev).squeeze(0), torch.eye(params[1].size(-1), device=dev)), posterior).item()
+                        res_dict["mse_params"] = metrics.mse(closed_form_params.flatten(), params[0].flatten(0)).item()
                     else:
-                        res_dict["mse_params"]: mse(closed_form_params, params).item()
+                        res_dict["mse_params"] = mse(closed_form_params.flatten(), params.flatten()).item()
                     specification['results'][2].append(res_dict)
+
+                    pred_dict[loss + " " + in_context_model.eval_model._get_name() + str(k)] = predictions
+                    pred_dict["cf "+in_context_model.eval_model._get_name() + str(k)] = closed_form_prediction
 
 
                     # TODO generate input dataset of 128 points randomly from input space
@@ -216,10 +226,31 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
                         main.eval_plot(gt_model._get_name() + " " + str(i), loss + " " + in_context_model.eval_model._get_name(),
                                        gt_model, Xplot[:, 0], Y_predplot.squeeze(0), Ypred_cf, savepath=save_path)
 
+            if plot: plotting.plot_regression(ds_test, pred_dict, i, gt_model._get_name())
+
     for specification in exp2_specs:
         save_path = specification['save_path']
         [results_range_normalized, results_rel, results] = specification['results']
         df = pd.DataFrame(results)
+
+        # calculate correlation
+        df_filtered = df[
+            (df["model_name"] == "mle-dataset Polynomial") &
+            (df["gt"] == "Nonlinear")
+            ]
+
+        sub = df_filtered[["mse_closed_form", "mse_params"]] \
+            .sort_values("mse_closed_form")
+
+        plt.figure(figsize=(6, 4))
+        plt.scatter(sub["mse_closed_form"], sub["mse_params"])
+        plt.xlabel("MSE (closed form)")
+        plt.ylabel("Parameter Loss (mse_params)")
+        plt.title("Correlation between MSE and Parameter Loss")
+        plt.grid(True)
+        plt.show()
+
+
         metric_cols = df.columns.difference(['gt', 'model_name', 'trial'])
 
         agg_dict = {
@@ -277,11 +308,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 1000, #100000,
+        'dataset_amount': 100000,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 1000, #10000,
+        'valset_size': 10000,
         'normalize': False
     },
     'early_stopping_params': {
@@ -295,7 +326,7 @@ default_specs = {
     'save_all': False,
 }
 specs_1 = copy.deepcopy(default_specs)
-specs_1['save_path'] = './exp2_uniform_fixed_no_normalize_final'
+specs_1['save_path'] = './exp2_uniform_fixed_no_normalize_switch_data'
 
 specs_2 = copy.deepcopy(default_specs)
 specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
@@ -304,4 +335,4 @@ specs_2['train_specs']['dataset_size'] = 1024
 specs_3 = copy.deepcopy(default_specs)
 specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_params'
 specs_3['transformer_arch']['num_layers'] = 8
-run_experiments([specs_1, specs_2, specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')
+run_experiments([specs_1], nop_specs=None, x_dist='uniform_fixed')

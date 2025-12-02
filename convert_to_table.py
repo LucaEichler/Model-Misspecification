@@ -38,7 +38,50 @@ def fill_block_exp2_long_eb(list, list2, list3, list_e, list2_e, list3_e):
     )
     return table_string
 
+def convert_exp2_params_eb(filename):
+    df = pd.read_csv(filename)
 
+    col = df['mse_params_mean']
+    col_e = df['mse_params_ci95']
+    blocks=[]
+    for i in range(4):
+        l = [col[0+i*3], col[24+i*3], col[12+i*3], col[2+i*3], col[26+i*3], col[14+i*3], col[1+i*3], col[25+i*3], col[13+i*3]]
+        l_e = [col_e[0+i*3], col_e[24+i*3], col_e[12+i*3], col_e[2+i*3], col_e[26+i*3], col_e[14+i*3], col_e[1+i*3], col_e[25+i*3], col_e[13+i*3]]
+
+        block = fill_block_exp2_eb(l, l_e)
+        blocks.append(block)
+
+    [rev_kl_block, fwd_kl_block, mle_ds_block, mle_pa_block] = blocks
+
+    out = rf"""\begin{{table*}}[h!]
+    \centering
+    \small
+    \setlength{{\tabcolsep}}{{6pt}}
+    \renewcommand{{\arraystretch}}{{1.2}}
+    \begin{{tabular}}{{lllccc}}
+    \toprule
+    \textbf{{Model Family}} & \textbf{{Objective}} & \textbf{{Modelling Assumption}} & \multicolumn{{3}}{{c}}{{Loss($\downarrow$)}}\\
+    \cmidrule(lr){{4-6}}
+    & & & Linear & Polynomial & Nonlinear \\
+    \specialrule{{0.1em}}{{0.1em}}{{0.1em}}
+    \multirow{{12}}{{*}}{{Amortized}} 
+    & \multirow{{3}}{{*}}{{Rev-KL}} 
+    {rev_kl_block}
+    \cmidrule{{2-6}}
+    & \multirow{{3}}{{*}}{{Fwd-KL}} 
+    {fwd_kl_block}
+    \cmidrule{{2-6}}
+    & \multirow{{3}}{{*}}{{MLE-Dataset}}
+    {mle_ds_block}
+    \cmidrule{{2-6}}
+    & \multirow{{3}}{{*}}{{MLE-Params}}
+    {mle_pa_block}
+    \specialrule{{0.1em}}{{0.1em}}{{0.1em}}
+    \end{{tabular}}
+    \caption{{}}
+    \end{{table*}}"""
+
+    print(out)
 def convert_exp2_eb(filename):
     df = pd.read_csv(filename)
     cf = df['mse_closed_form_mean']
@@ -350,5 +393,5 @@ def convert_exp2_kl_eb(filename):
     print(out)
 
 #convert_exp2_ablation_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_ds_size/experiment2_results.csv", "./exp2_uniform_fixed_no_normalize_inc_params/experiment2_results.csv")
-convert_exp2_kl_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")
+convert_exp2_params_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")
 #convert_exp2_eb("./exp2_uniform_fixed_no_normalize_final/experiment2_results.csv")

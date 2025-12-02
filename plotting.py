@@ -117,7 +117,29 @@ def plot_regression_on_dataset(y_test, y_pred, name):
     plt.show()
     plt.close()
 
-def plot_regression_on_dataset_ax(y_test, y_pred, ax):
+
+def plot_regression(ds, pred_dict, i, gt_name):
+    k=0
+    fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+
+    model_type = "Polynomial"
+
+    cf = "cf "+model_type+str(k)
+
+    losses =  ['mle-dataset', 'backward-kl', 'forward-kl', 'mle-params']
+    lossesShift =  ['MLE-Dataset', 'Rev-KL', 'Fwd-KL', 'MLE-Params']
+
+    plot_regression_on_dataset_ax(ds.Y, pred_dict[cf].squeeze(0), axes[0], "Closed Form Solution")
+
+    for l in range(len(losses)):
+        plot_regression_on_dataset_ax(ds.Y, pred_dict[losses[l] + " " + model_type+str(k)].squeeze(0), axes[l+1], lossesShift[l])
+
+    plt.savefig("./plots/"+gt_name+str(i)+".pdf")
+    plt.show()
+    plt.close()
+
+
+def plot_regression_on_dataset_ax(y_test, y_pred, ax, title):
     ex = np.arange(y_test.size(0))
     ax.set_xlim(-1, y_test.size(0))
     ax.set_ylim(float(torch.min(y_test.cpu())), float(torch.max(y_test.cpu())))
@@ -126,6 +148,9 @@ def plot_regression_on_dataset_ax(y_test, y_pred, ax):
 
     ax.scatter(ex, y_pred[idx].flatten().detach().cpu().numpy(), color='blue')
     ax.scatter(ex, y_test[idx].flatten().detach().cpu().numpy(), color='red')
+
+    if title is not None:
+        ax.set_title(f"{title} {metrics.mse(y_test, y_pred).item():.3f}")
 
 def normalize_minus1_1(x):
     # Compute min and max

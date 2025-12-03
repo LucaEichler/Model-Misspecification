@@ -1,6 +1,7 @@
 import copy
 import os
 
+import numpy as np
 import pandas as pd
 import torch
 from matplotlib import pyplot as plt
@@ -28,7 +29,9 @@ plot=False
 #model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': False}),]
 
 
-model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True})]
+model_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
+                ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
+               ('Linear', {'order': 1, 'feature_sampling_enabled': True}), ]
 
 eval_specs = [('Linear', {'order': 3, 'feature_sampling_enabled': True}),
                 ('Linear', {'order': 3, 'feature_sampling_enabled': True, 'nonlinear_features_enabled': True}),
@@ -239,17 +242,9 @@ def run_experiments(exp2_specs, nop_specs=None, x_dist=None):
             (df["gt"] == "Nonlinear")
             ]
 
+
         sub = df_filtered[["mse_closed_form", "mse_params"]] \
             .sort_values("mse_closed_form")
-
-        plt.figure(figsize=(6, 4))
-        plt.scatter(sub["mse_closed_form"], sub["mse_params"])
-        plt.xlabel("MSE (closed form)")
-        plt.ylabel("Parameter Loss (mse_params)")
-        plt.title("Correlation between MSE and Parameter Loss")
-        plt.grid(True)
-        plt.show()
-
 
         metric_cols = df.columns.difference(['gt', 'model_name', 'trial'])
 
@@ -308,11 +303,11 @@ default_specs = {
         'lr':0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 1000, #100000,
         'dataset_size': 128,
         'num_iters': 1000000,
         'batch_size': 100,
-        'valset_size': 10000,
+        'valset_size': 1000, #10000,
         'normalize': False
     },
     'early_stopping_params': {
@@ -326,7 +321,7 @@ default_specs = {
     'save_all': False,
 }
 specs_1 = copy.deepcopy(default_specs)
-specs_1['save_path'] = './exp2_uniform_fixed_no_normalize_switch_data'
+specs_1['save_path'] = './exp2_uniform_fixed_no_normalize'
 
 specs_2 = copy.deepcopy(default_specs)
 specs_2['save_path'] = './exp2_uniform_fixed_no_normalize_inc_ds_size'
@@ -335,4 +330,4 @@ specs_2['train_specs']['dataset_size'] = 1024
 specs_3 = copy.deepcopy(default_specs)
 specs_3['save_path'] = './exp2_uniform_fixed_no_normalize_inc_params'
 specs_3['transformer_arch']['num_layers'] = 8
-run_experiments([specs_1], nop_specs=None, x_dist='uniform_fixed')
+run_experiments([specs_1, specs_2, specs_3], nop_specs=train_neuralop.specs, x_dist='uniform_fixed')

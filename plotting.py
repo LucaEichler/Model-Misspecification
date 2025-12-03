@@ -11,8 +11,22 @@ import in_context_models
 import metrics
 from classical_models import LinearVariational, Linear
 import plotly.graph_objects as go
-
+import numpy as np
 from main import train
+
+def plot_switched_data():
+    switched = np.load("switched.npy")
+    not_switched = np.load("not_switched.npy")
+    plt.figure(figsize=(6, 4))
+    plt.scatter(switched[:, 0], switched[:, 1], color = 'orange', label='Nonlinear Training Data')
+    plt.scatter(not_switched[:, 0], not_switched[:, 1], color = 'blue', label='Polynomial Training Data')
+    plt.legend()
+    plt.xlabel("MSE (Closed Form)")
+    plt.ylabel("Parameter Loss")
+    plt.ylim(-0.1, 1.)
+    plt.grid()
+    plt.savefig("switch_data.pdf")
+    plt.show()
 
 def plot_3d_surfaces(model1, model2, W1, W2, model_name="model", ds_name="ds"):
     surfaces = []

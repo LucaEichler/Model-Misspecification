@@ -2,6 +2,7 @@
 # using parameters of trained networks as teacher
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 
 import config
 import datasets
@@ -15,7 +16,7 @@ from main import train
 
 # generate mode to generate new data and write it to a file, as training neural networks takes a long time
 # train mode for then using that data to train
-mode = "generate"
+mode = "train"
 dx = 3
 dy = 1
 dh = 100
@@ -139,18 +140,18 @@ elif mode == "train":
 
     specification = {
         'transformer_arch': {
-        'dT': 256,
+        'dT': 64, #256,
         'num_heads': 4,
-        'num_layers': 4,
+        'num_layers': 2, #4,
         'output': 'attention-pool'
     },
         'train_specs': {
         'lr': 0.0001,
         'min_lr': 1e-6,
         'weight_decay': 1e-5,
-        'dataset_amount': 100000,
+        'dataset_amount': 0,#100000,
         'dataset_size': 128,
-        'num_iters': 100000,
+        'num_iters': 10, #100000,
         'batch_size': 100,
         'normalize': False
     },
@@ -168,45 +169,46 @@ elif mode == "train":
     model_kwargs = {'dh': config.dh}
     model_specs = [(model_name, model_kwargs)]
 
-    dataset = datasets.ContextDataset(train_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', params_list=train_data, **model_kwargs)
-    valset = datasets.ContextDataset(val_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist='uniform', noise_std=config.noise_std, params_list=val_data, **model_kwargs)
+    dataset = datasets.ContextDataset(train_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist=x_dist, params_list=train_data, **model_kwargs)
+    valset = datasets.ContextDataset(val_data.size(0), config.dataset_size_in_context, model_name, dx, dy, x_dist=x_dist, noise_std=config.noise_std, params_list=val_data, **model_kwargs)
 
 
     trained_in_context_models = train_in_context_models(dx = dx, dy = dy, transformer_arch = specification['transformer_arch'],
-                                 x_dist = 'uniform', train_specs = specification['train_specs'],
+                                 x_dist = x_dist, train_specs = specification['train_specs'],
                                  model_specs = model_specs, losses = specification['losses'], early_stopping_params = specification[
-        'early_stopping_params'], save_path = specification['save_path'], datasets = (dataset, valset))
+        'early_stopping_params'], save_path = specification['save_path'], ds = (dataset, valset))
 
 
     _, model_trained = trained_in_context_models[0]
 
 
-    tries = 10
+    tries = 20
     for i in range(tries):
         evalmodel = Linear(dx=dx, dy=dy, order=3, feature_sampling_enabled=False, nonlinear_features_enabled=True)
 
         # create new ground truth model for evaluation
         gt_model = eval(model_name)(dx=dx, dy=dy, **model_kwargs)
 
-        Xplot = torch.linspace(-2, 2, 25).unsqueeze(1).to(config.device)
-        Xplot = torch.cat([Xplot, Xplot, Xplot], dim=-1)
-        Yplot = gt_model(Xplot)
+        bounds = datasets.gen_uniform_bounds(dx, x_dist=x_dist)
 
-        # plotting is flawed, need to give different input to amortized model / cf
-        # sample an input dataset from ground truth
-        ds_input_plot = datasets.PointDataset(dataset_size, gt_model, x_dist='uniform', noise_std=0.5,
-                                              bounds=torch.tensor([[-2., 2.], [-2., 2.], [-2., 2.]]))
+        ds_input = datasets.PointDataset(specification['train_specs']['dataset_size'], gt_model,
+                                   x_dist=x_dist, noise_std=0.5,
+                                   bounds=bounds)
 
-        Y_predplot, params_predplot = model_trained.predict(
-            torch.cat((ds_input_plot.X, ds_input_plot.Y), dim=-1).unsqueeze(0),
-            Xplot.unsqueeze(0))
+        ds_test = datasets.PointDataset(1000, gt_model,
+                                   x_dist=x_dist, noise_std=0.,
+                                   bounds=bounds)
 
-        closed_form_params = evalmodel.closed_form_solution_regularized(ds_input_plot.X,
-                                                                                          ds_input_plot.Y,
-                                                                                          lambd=config.lambda_mle)
-        Ypred_cf = evalmodel.forward(Xplot.unsqueeze(0), closed_form_params.unsqueeze(0))
+        predictions, params, _ = model_trained.predict(torch.cat((ds_input.X, ds_input.Y), dim=-1).unsqueeze(0),
+                                                          ds_test.X.unsqueeze(0))
 
-        main.eval_plot(gt_model._get_name() + " " + str(i), model_trained.eval_model._get_name(),
-                       gt_model, Xplot[:, 0], Y_predplot.squeeze(0), Ypred_cf)
+        fig, axes = plt.subplots(1, 1, figsize=(4, 4))
+
+        plotting.plot_regression_on_dataset_ax(ds_test.Y, predictions.squeeze(0), axes, "")
+
+
+        plt.savefig(f"./plots/exp5_{i}")
+
+        plt.show()
 
 

@@ -1,6 +1,8 @@
 import math
+import os
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import torch
 from plotly.subplots import make_subplots
 from scipy.stats import norm
@@ -13,6 +15,83 @@ from classical_models import LinearVariational, Linear
 import plotly.graph_objects as go
 import numpy as np
 from main import train
+import seaborn as sns
+
+
+import wandb
+import matplotlib.pyplot as plt
+
+
+def plot_two_metrics_seaborn(model_name, save_folder="./plots", figsize=(22, 7), dpi=150, color='blue'):
+ # orange mle params, red mle-dataset , green forward-kl
+    # Set Seaborn style
+    sns.set(style="whitegrid", context="talk")
+
+    # Paths
+    path_loss = f"./exp2_loss_plots/exp2 {model_name} loss.csv"
+    path_val = f"./exp2_loss_plots/exp2 {model_name} val.csv"
+
+    df_loss = pd.read_csv(path_loss)
+    df_val = pd.read_csv(path_val)
+
+    # Create folder if needed
+    os.makedirs(save_folder, exist_ok=True)
+
+    # Create figure with 2 subplots
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+
+    # Training Loss
+    sns.lineplot(x='Step', y=f"{model_name} - loss", data=df_loss, ax=axes[0], color=color, linewidth=2)
+    axes[0].set_title("Training Loss")
+    axes[0].set_xlabel("Iteration")
+    axes[0].set_ylabel("Loss")
+
+    # Validation Loss
+    sns.lineplot(x='Step', y=f"{model_name} - val_loss", data=df_val, ax=axes[1], color=color, linewidth=2)
+    axes[1].set_title("Validation Loss")
+    axes[1].set_xlabel("Iteration")
+    axes[1].set_ylabel("Validation Loss")
+
+    """y_min = min(df_loss[f"{model_name} - loss"].min(), df_val[f"{model_name} - val_loss"].min())
+    y_max = max(df_loss[f"{model_name} - loss"].max(), df_val[f"{model_name} - val_loss"].max())
+    axes[0].set_ylim(y_min, y_max)
+    axes[1].set_ylim(y_min, y_max)"""
+
+    # Overall title
+    #plt.suptitle(model_name, fontsize=16)
+    plt.tight_layout(w_pad=10.0)
+
+    # Save
+    save_path = os.path.join(save_folder, f"exp2 {model_name}.pdf")
+    plt.savefig(save_path, dpi=dpi)
+    plt.close()
+    print(f"Saved plot to {save_path}")
+
+#plot_two_metrics_seaborn("nop_Linear", color= 'black')
+#plot_two_metrics_seaborn("nop_Polynomial", color ='black')
+#plot_two_metrics_seaborn("nop_Nonlinear", color ='black')
+
+
+def plot_two_metrics(model_name):
+    path_loss = "./exp1_loss_plots/exp1 "+model_name+" loss.csv"
+    path_val = "./exp1_loss_plots/exp1 "+model_name+" val.csv"
+    df_loss = pd.read_csv(path_loss)
+    df_val = pd.read_csv(path_val)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10,4))
+
+    axes[0].plot(df_loss['Step'], df_loss[model_name+" - loss"])
+    axes[0].set_title("Loss")
+    axes[0].set_xlabel("Iteration")
+
+    axes[1].plot(df_val['Step'], df_val[model_name + " - val_loss"])
+    axes[1].set_title("Validation Loss")
+    axes[1].set_xlabel("Iteration")
+
+    plt.tight_layout()
+    plt.savefig("file.pdf")
+    plt.close()
+
 
 def plot_switched_data():
     switched = np.load("switched.npy")
@@ -283,6 +362,7 @@ def plot_params(models, style_list, eval_spec, x_dist, save_name, normalize):
 
 
 if __name__ == "__main__":
+    pass
     dx,dy=3,1
     test_set_size=1000
     input_set_size = 128

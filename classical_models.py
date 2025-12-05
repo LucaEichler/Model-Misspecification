@@ -43,7 +43,7 @@ class NonLinear(nn.Module):
                 nn.init.zeros_(layer.bias)
 
 
-    def forward(self, x, W=None):
+    def forward(self, x, W=None, scales=None):
         # TODO: Check for correctness
         batched = W is not None
         if batched:
